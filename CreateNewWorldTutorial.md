@@ -18,4 +18,4 @@ npm start
 
 Copy the Network URL (e.g. http://192.168.1.145:9684/) and paste it into your web browser. 
 
-To create your own world, create a .js file in the "Worlds" folder.
+In Croquet, a World is a .js file containing a set of cards. You can find the default world in the "worlds" folder within the Croquet directory you created. To create your own world, you must create a new .js file in the "worlds" folder and name it. It is recommended that you copy the default world and add new cards into it.
