@@ -2,9 +2,9 @@
 
 The easiest and most direct method to start creating your own worlds in Croquet is to install and initiate a Croquet Microverse via Node.js. 
 
-First, install Node.js. This is a prerequisite for Croquet to run.
+First, install Node.js. This is a prerequisite for Croquet to run. The latest available releases of the Node.js installer are free to download on https://nodejs.org/en/ the Node.js website. It is recommended that the 18.12.0 LTS version is used. Proceed to run the installer, and it will install both Node.js and NPM on your machine. 
 
-Create an empty folder anywhere you like. Inside the folder, click on the address bar and type "cmd". This brings up the terminal in this folder. 
+Next, create an empty folder anywhere you like. Inside the folder, click on the address bar and type "cmd". This brings up the terminal in this folder. 
 
 Next, paste the following command into the terminal.
 
