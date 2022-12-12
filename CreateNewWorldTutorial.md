@@ -21,7 +21,7 @@ Copy the Network URL (e.g. http://192.168.1.145:9684/) and paste it into your we
 In Croquet, a World is a .js file containing a set of cards. You can find the default world in the "worlds" folder within the Croquet directory you created. To create your own world, you must create a new .js file in the "worlds" folder and name it. It is recommended that you copy the default world and add new cards into it.
 
 
-# Creating An Shape-Generating Button (Step-by-step Tutorial)
+# Creating A Shape-Generating Button (Step-by-step Tutorial)
 
 To create a clickable button, we must have a card in the world file to define the appearance of the button and a behaviour module to link it to an event. We will define the card for the shape created by the button within the behaviour module itself.
 
