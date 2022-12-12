@@ -21,18 +21,39 @@ Copy the Network URL (e.g. http://192.168.1.145:9684/) and paste it into your we
 In Croquet, a World is a .js file containing a set of cards. You can find the default world in the "worlds" folder within the Croquet directory you created. To create your own world, you must create a new .js file in the "worlds" folder and name it. It is recommended that you copy the default world and add new cards into it.
 
 
-# Creating A Button (Step-by-step Tutorial)
+# Creating An Shape-Generating Button (Step-by-step Tutorial)
 
-To create a clickable button, we must have a card in the world file to define the appearance of the button and a behaviour module to link it to an event. We will define the card for the object created by the button within the behaviour module itself.
+To create a clickable button, we must have a card in the world file to define the appearance of the button and a behaviour module to link it to an event. We will define the card for the shape created by the button within the behaviour module itself.
 
-The card for the button can be very simply. It can have only a name, a translation parameter, a behaviour module, and a type. An example of a card for a button is shown below:
+The card for the button can be very simple. It can have only a name, a translation parameter, a behaviour module, and a type. An example of a card for a button is shown below:
 
 card: {
   name: "portal button",
-  translation: [0.5, 0.366177949493676, -2.566177949493676],
-  behaviorModules: ["OpenRefineryPortalButton"],
+  translation: [x, y, z],
+  behaviorModules: [string],
   type: "object"
 }
 
-Next, we must define the behaviour of the button.
+Next, we must define the behaviour of the button. We can use the existing OpenPortal.js behaviour module as a template.
 
+We need to define the shape card within the object created by the pressed() function. The "physicsSize" parameter defines the size of the shape, and the "physicsShape" parameter defines the shape. You may use three pre-existing shapes - cuboid, ball and cylinder.
+
+pressed() {
+    this.check();
+    if (this.hasOpened) {return;}
+    this.hasOpened = true;
+
+this.createCard({
+    name: " ",
+    type: "object",
+    translation: [x, y, z],
+    layers: ["pointer"],
+    scale: [x, y, z],
+    behaviorModules: [" "],
+    physicsSize:  ,
+    physicsShape: " ",
+    physicsType: "positionBased"
+  });
+}
+
+This is all you need to make a basic interactive shape generator. 
