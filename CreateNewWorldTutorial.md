@@ -23,4 +23,16 @@ In Croquet, a World is a .js file containing a set of cards. You can find the de
 
 # Creating A Button (Step-by-step Tutorial)
 
-To create a clickable button, we must have a card to define the appearance of the button and a behaviour module to link it to an event.
+To create a clickable button, we must have a card in the world file to define the appearance of the button and a behaviour module to link it to an event. We will define the card for the object created by the button within the behaviour module itself.
+
+The card for the button can be very simply. It can have only a name, a translation parameter, a behaviour module, and a type. An example of a card for a button is shown below:
+
+card: {
+  name: "portal button",
+  translation: [0.5, 0.366177949493676, -2.566177949493676],
+  behaviorModules: ["OpenRefineryPortalButton"],
+  type: "object"
+}
+
+Next, we must define the behaviour of the button.
+
