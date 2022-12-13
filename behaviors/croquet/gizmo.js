@@ -1,6 +1,7 @@
 class GizmoActor {
     setup() {
         this.listen("cycleModes", "cycleModes");
+        this.isGizmoManipulator = true;
         this.cycleModes();
         this.addPropertySheetButton();
         this.subscribe(this.target.id, "translationSet", "translateTarget");
@@ -68,14 +69,14 @@ class GizmoActor {
         let a = avatar.translation;
 
         let offsets = [
-            [ 2,  2,  2],
-            [-2,  2,  2],
-            [ 2, -2,  2],
-            [-2, -2,  2],
-            [ 2,  2, -2],
-            [-2,  2, -2],
-            [ 2, -2, -2],
-            [-2, -2, -2]
+            [ 2,  1,  2],
+            [-2,  1,  2],
+            [ 2, -1,  2],
+            [-2, -1,  2],
+            [ 2,  1, -2],
+            [-2,  1, -2],
+            [ 2, -1, -2],
+            [-2, -1, -2]
         ];
 
         let locals = offsets.map((o) => v3_add(t, o));
@@ -91,6 +92,7 @@ class GizmoActor {
                 min = i;
             }
         }
+
         return offsets[min];
     }
 
@@ -101,10 +103,19 @@ class GizmoActor {
 
         let t = this.closestCorner(this.creatorId);
 
+        this.dataLocation = "3ryPlwPIvSHXjABwnuJjrMQYPp1JH2OnghLGR_cdAbCEGgYGAgFIXV0UGx4XAVwHAVwRAB0DBxcGXBsdXQddNRYkEAseOwEzGSMRMCoWQTUKEwQLBSc5JSsrQF0bHVwRAB0DBxcGXB8bEQAdBBcAARddBRckQ0E8AEUcRwABPTExOhMCHEMeNENFIAglOitFNBg0OjNGPiYQIl81Sl0WEwYTXUMeCgYrHDc7HkECPScbJxYKOSE6RCgXK0YgFwYgCzAYPioRCkEkAEYVLRU";
+
         this.propertySheetButton = this.createCard({
             name: "property sheet button",
-            behaviorModules: ["GizmoPropertySheetButton"],
-            type: "object",
+            dataLocation: this.dataLocation,
+            fileName: "/prop-plain.svg",
+            modelType: "svg",
+            shadow: true,
+            singleSided: true,
+            scale: [0.5, 0.5, 0.5],
+            type: "2d",
+            fullBright: true,
+            behaviorModules: ["GizmoPropertySheetButton", "Billboard"],
             parent: this,
             noSave: true,
             translation: t,
@@ -313,6 +324,13 @@ class GizmoPawn {
         if (!this.interval) {
             this.interval = setInterval(() => this.checkInteraction(), 1000);
         }
+
+        let assetManager = this.service("AssetManager").assetManager;
+        let dataLocation = this.actor.dataLocation;
+        this.getBuffer(dataLocation).then((buffer) => {
+            assetManager.setCache(dataLocation, buffer, "global");
+        });
+
         this.subscribe(this.id, "interaction", "interaction");
     }
 
@@ -350,6 +368,7 @@ class GizmoPawn {
 
 class GizmoAxisActor {
     setup() {
+        this.isGizmoManipulator = true;
         this.subscribe(this.parent.id, "translateTarget", "translateTarget");
     }
 
@@ -476,6 +495,7 @@ class GizmoAxisPawn {
 
 class GizmoRotorActor {
     setup() {
+        this.isGizmoManipulator = true;
         this.subscribe(this.parent.id, "rotateTarget", "rotateTarget");
     }
 
@@ -648,6 +668,7 @@ class GizmoRotorPawn {
 
 class GizmoScalerActor {
     setup() {
+        this.isGizmoManipulator = true;
         this.subscribe(this.parent.id, "scaleTarget", "scaleTarget");
     }
 
@@ -817,11 +838,18 @@ class GizmoScalerPawn {
     }
 }
 
+class GizmoPropertySheetButtonActor {
+    setup() {
+        this.isGizmoManipulator = true;
+    }
+}
+
 class GizmoPropertySheetButtonPawn {
     setup() {
         let isMine = this.parent?.actor.creatorId === this.viewId;
 
-        this.makeButton();
+        this.subscribe(this.id, "2dModelLoaded", "svgLoaded");
+        this.parent.call("Gizmo$GizmoPawn", "forceOnTop", this.shape);
         if (isMine) {
             this.addEventListener("pointerMove", "nop");
             this.addEventListener("pointerEnter", "hilite");
@@ -833,21 +861,21 @@ class GizmoPropertySheetButtonPawn {
         }
     }
 
-    makeButton() {
-        [...this.shape.children].forEach((c) => this.shape.remove(c));
-
-        let geometry = new Microverse.THREE.SphereGeometry(0.15, 16, 16);
-        let material = new Microverse.THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.8});
-        let button = new Microverse.THREE.Mesh(geometry, material);
-        this.shape.add(button);
-        this.setColor();
-        this.parent.call("Gizmo$GizmoPawn", "forceOnTop", button);
+    svgLoaded() {
+        if (this.shape.children[0]) {
+            this.parent.call("Gizmo$GizmoPawn", "forceOnTop", this.shape.children[0]);
+        }
     }
 
     setColor() {
-        let baseColor = this.entered ? 0xeeeeee : 0xcccccc;
-        if (this.shape.children[0] && this.shape.children[0].material) {
-            this.shape.children[0].material.color.setHex(baseColor);
+        let svg = this.shape.children[0];
+        let backdrop;
+        if (svg) {
+            backdrop = svg.children[0];
+        }
+        let baseColor = this.entered ? 0x888888 : 0x4a4a4a;
+        if (backdrop.material && backdrop.material[0]) {
+            backdrop.material && backdrop.material[0].color.setHex(baseColor);
         }
     }
 
@@ -866,6 +894,7 @@ class GizmoPropertySheetButtonPawn {
     openPropertySheet(event) {
         let avatar = Microverse.GetPawn(event.avatarId);
         this.publish(this.actor.id, "openPropertySheet", {avatar: event.avatarId, distance: avatar.targetDistance});
+        this.destroy();
     }
 }
 
@@ -893,6 +922,7 @@ export default {
         },
         {
             name: "GizmoPropertySheetButton",
+            actorBehaviors: [GizmoPropertySheetButtonActor],
             pawnBehaviors: [GizmoPropertySheetButtonPawn],
         }
     ]

@@ -379,6 +379,30 @@ body.tilt > iframe {
 }
 
 #userCountReadout[presenting="true"] {
-    background-color: #300079;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+@media (max-height: 800px) {
+    .share-qr-canvas {
+	width: 120px;
+	height: 120px;
+	margin: 10px;
+    }
+
+    .menu-label {
+	font-size: 12px;
+	line-height: 14px;
+    }
+
+    .worldMenu {
+	width: fit-content;
+    }
+}
+
+
+@media (max-height: 500px) {
+    .menu-qr {
+	display: none;
+    }
 }
 
