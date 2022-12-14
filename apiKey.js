@@ -1,3 +1,3 @@
-const apiKey = '1Bvn0kovx4Motn3oN9kdyOK3dBNxxsleHyoDGMrft';
-const appId = 'gearworldpublic';
+const apiKey = '1bz6pyGBm6DjPKmP1cvvGiADtGkbNbt8nyM9aFLDF';
+const appId = 'io.github.ryan-then.microverse.gearworld';
 export default {apiKey, appId};
