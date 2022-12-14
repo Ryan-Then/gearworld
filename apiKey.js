@@ -1,3 +1,3 @@
-const apiKey = '1Bvn0kovx4Motn3oN9kdyOK3dBNxxsleHyoDGMrft';
+const apiKey = '1bz6pyGBm6DjPKmP1cvvGiADtGkbNbt8nyM9aFLDF';
 const appId = 'gearworldpublic';
 export default {apiKey, appId};
