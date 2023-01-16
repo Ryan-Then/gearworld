@@ -17,7 +17,7 @@ class OpenRefineryPortalActor {
         if (this.hasOpened) {return;}
         this.hasOpened = true;
 
-/* 		this.createCard({
+		this.createCard({
 			name:"base",
 			type: "object",
 			layers: ["pointer", "walk"],
@@ -28,7 +28,7 @@ class OpenRefineryPortalActor {
 			color: 0x997777,
 			physicsShape: "cuboid",
 			physicsType: "positionBased",
-                }); */
+                });
     }
 }
 
