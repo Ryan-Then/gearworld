@@ -17,18 +17,18 @@ class OpenRefineryPortalActor {
         if (this.hasOpened) {return;}
         this.hasOpened = true;
 
-		this.createCard({
+/* 		this.createCard({
 			name:"base",
 			type: "object",
 			layers: ["pointer", "walk"],
 			rotation: [-Math.PI / 6, 0, 0],
 			translation: [0.5, 1, -2.5],
 			behaviorModules: ["Physics", "Cascade"],
-		        physicsSize: [0.7, 0.7, 0.7],
+		        scale: [0.9, 0.2, 0.2],
 			color: 0x997777,
 			physicsShape: "cuboid",
 			physicsType: "positionBased",
-                });
+                }); */
     }
 }
 

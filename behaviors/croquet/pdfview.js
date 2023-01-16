@@ -4,97 +4,36 @@ class PDFActor {
         // a suitable aspect ratio.  pageGapPercent is needed for calculating overall
         // scroll position.
         if (this.numPages === undefined) {
-            this.measuredDocLocation = null; // pdfLocation for the latest doc for which we have measurements
             this.numPages = null;
             this.pageGapPercent = null;
-            this.scrollState = null;
+            this.scrollPosition = null;
         }
-
-        this.addButtons();
 
         this.listen("docLoaded", "docLoaded");
         this.listen("changePage", "changePage");
         this.listen("scrollByPercent", "scrollByPercent");
         this.listen("requestScrollPosition", "requestScrollPosition");
-
-        this.listen("setCardData", "cardDataUpdated");
-        this.subscribe(this.id, "buttonPageChange", "changePage");
+console.log(this);
     }
 
-    viewJoined(_viewId) {
+    viewJoined(viewId) {
     }
 
-    viewExited(_viewId) {
-    }
-
-    addButtons() {
-        // from chevron-up-solid-thicker
-        const chevronSVG = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NzAuMTQgMjc4LjA0Ij4KICA8cGF0aCBkPSJtNDU3LjU0LDIwNC42TDI2NS41NCwxMi42Yy04LjEyLTguMTItMTguOTMtMTIuNi0zMC40My0xMi42LTEwLjgyLDAtMjEuMDIsMy45Ni0yOC45NSwxMS4xOS0uNTYuMzgtMS4wOC44Mi0xLjU4LDEuMzFMMTIuNTgsMjA0LjVjLTE2Ljc4LDE2Ljc4LTE2Ljc4LDQ0LjA4LDAsNjAuODYsMTYuNzgsMTYuNzgsNDQuMDgsMTYuNzgsNjAuODUsMEwyMzUuMDYsMTAzLjgzbDE2MS42MiwxNjEuNjJjOC4zOSw4LjM5LDE5LjQxLDEyLjU4LDMwLjQzLDEyLjU4czIyLjA0LTQuMTksMzAuNDMtMTIuNThjOC4xMi04LjEyLDEyLjYtMTguOTMsMTIuNi0zMC40M3MtNC40Ny0yMi4zMS0xMi42LTMwLjQzWiIvPgo8L3N2Zz4=";
-        const buttonSpecs = {
-            up: { svg: chevronSVG, scale: 0.7, position: [0, 0.05] },
-            down: { svg: chevronSVG, scale: 0.7, position: [0, 0.05], rotation: [0, 0, Math.PI] },
-        };
-        const size = this.buttonSize = 0.1;
-        const CIRCLE_RATIO = 1.25; // ratio of button circle to inner svg
-        const makeButton = symbol => {
-            const { svg, scale, position, rotation } = buttonSpecs[symbol];
-            const button = this.createCard({
-                name: "button",
-                dataLocation: svg,
-                fileName: "/svg.svg", // ignored
-                modelType: "svg",
-                shadow: true,
-                singleSided: true,
-                scale: [size * scale / CIRCLE_RATIO, size * scale / CIRCLE_RATIO, 1],
-                rotation: rotation || [0, 0, 0],
-                depth: 0.01,
-                type: "2d",
-                fullBright: true,
-                behaviorModules: ["PDFButton"],
-                parent: this,
-                noSave: true,
-            });
-            button.call("PDFButton$PDFButtonActor", "setProperties", { name: symbol, svgScale: scale, svgPosition: position || [0, 0] });
-            return button;
-        }
-
-        this.buttons = {};
-        ["up", "down"].forEach(buttonName => {
-            this.buttons[buttonName] = makeButton(buttonName);
-        });
-
+    viewExited(viewId) {
     }
 
     docLoaded(data) {
-        // might be sent by multiple clients.  the first one delivering the measurements for
-        // the current pdfLocation gets to set them, and reset the scroll.
-        const { pdfLocation } = data;
-        if (pdfLocation === this._cardData.pdfLocation && pdfLocation !== this.measuredDocLocation) {
-            this.measuredDocLocation = pdfLocation;
-            this.numPages = data.numPages;
-            this.pageGapPercent = data.pageGapPercent;
-            this.maxScrollPosition = data.maxScrollPosition;
-            this.scrollState = null;
-        }
-        if (this.scrollState === null) this.scrollState = { page: 1, percent: 0 };
-        this.annotateAndAnnounceScroll();
-    }
-
-    cardDataUpdated(data) {
-        if (data.height !== undefined) {
-            const offsetX = this.buttonSize * 3 / 4;
-            const offsetY = data.height / 2 + this.buttonSize * 3 / 4;
-            const depth = this._cardData.depth || 0.05;
-            const { up, down } = this.buttons;
-            up.translateTo([-offsetX, -offsetY, depth]);
-            down.translateTo([offsetX, -offsetY, depth]);
-            this.say("sizeSet");
-        }
+        // might be sent by multiple clients
+        this.numPages = data.numPages;
+        this.pageGapPercent = data.pageGapPercent;
+        this.maxScrollPosition = data.maxScrollPosition;
+        if (this.scrollPosition === null) this.scrollPosition = { page: 1, percent: 0 };
+        this.say("drawAtScrollPosition");
     }
 
     changePage(increment) {
         // increment is only ever +/- 1
-        let { page, percent } = this.scrollState;
+        let { page, percent } = this.scrollPosition;
         const { page: maxScrollPage, percent: maxScrollPercent } = this.maxScrollPosition;
 
         if (increment === 1) { // going forwards
@@ -107,8 +46,8 @@ class PDFActor {
             if (page === 0) page = this.numPages; // subject to reduction by normalizeScroll
         }
 
-        this.scrollState = this.normalizeScroll(page, 0);
-        this.annotateAndAnnounceScroll();
+        this.scrollPosition = this.normalizeScroll(page, 0);
+        this.say("drawAtScrollPosition");
     }
 
     requestScrollPosition({ page, percent }) {
@@ -117,7 +56,7 @@ class PDFActor {
     }
 
     scrollByPercent(increment) {
-        let { page, percent } = this.scrollState;
+        let { page, percent } = this.scrollPosition;
         percent += increment;
         const { page: newPage, percent: newPercent } = this.normalizeScroll(page, percent);
         this.announceScrollIfNew(newPage, newPercent);
@@ -150,21 +89,11 @@ class PDFActor {
     }
 
     announceScrollIfNew(page, percent) {
-        const { page: oldPage, percent: oldPercent } = this.scrollState;
+        const { page: oldPage, percent: oldPercent } = this.scrollPosition;
         if (page !== oldPage || percent !== oldPercent) {
-            this.scrollState = { page, percent };
-            this.annotateAndAnnounceScroll();
+            this.scrollPosition = { page, percent };
+            this.say("drawAtScrollPosition");
         }
-    }
-
-    annotateAndAnnounceScroll() {
-        // @@ at some point we'll add annotation for scroll being in progress, and under whose control
-        const { page, percent } = this.scrollState;
-        const { page: lastPage, percent: lastPercent } = this.maxScrollPosition;
-        this.scrollState.upAvailable = page !== 1 || percent !== 0;
-        this.scrollState.downAvailable = page !== lastPage || percent !== lastPercent;
-        this.say("drawAtScrollPosition");
-        this.publish(this.id, "updateButtons");
     }
 }
 
@@ -173,10 +102,10 @@ class PDFPawn {
         if (!window.pdfjsPromise) {
             window.pdfjsPromise = new Promise(resolve => {
                 const s = document.createElement('script');
-                s.setAttribute('src', 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js');
+                s.setAttribute('src', 'https://unpkg.com/pdfjs-dist@2.14.305/build/pdf.min.js');
                 s.onload = () => {
                     const pdfjsLib = window['pdfjs-dist/build/pdf'];
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@2.14.305/build/pdf.worker.min.js';
                     resolve(pdfjsLib);
                 };
                 document.body.appendChild(s);
@@ -190,28 +119,12 @@ class PDFPawn {
         // this.addEventListener("keyUp", "onKeyUp");
         this.addEventListener("pointerWheel", "onPointerWheel");
 
-        this.listen("cardDataSet", "cardDataUpdated");
-        this.listen("sizeSet", "sizeSet");
         this.listen("drawAtScrollPosition", "drawAtScrollPosition");
         this.listen("updateShape", "updateShape");
-
-        this.subscribe(this.id, "buttonPressed", "buttonPressed");
 
         let moduleName = this._behavior.module.externalName;
         this.addUpdateRequest([`${moduleName}$PDFPawn`, "update"]);
 
-        this.TEXTURE_SIZE = 2048;
-        this.initializeDocProperties();
-
-        // on a behavior reload, the pdf will typically already be loaded
-        if (this.hasLatestPDF()) this.measureDocument();
-        else this.loadDocument(this.actorPDFLocation());
-    }
-
-    actorPDFLocation() { return this.actor._cardData.pdfLocation }
-    hasLatestPDF() { return !!this.pdf && this.pdfLocation === this.actorPDFLocation() }
-
-    initializeDocProperties() {
         // if this is a reload, discard any GPU resources we were holding onto
         if (this.pages) {
             const meshPool = this.pageMeshPool;
@@ -231,22 +144,19 @@ class PDFPawn {
             });
         }
 
+        this.substrateObj = this.shape.children.find((o) => o.name === "2d");
+
+        this.TEXTURE_SIZE = 2048;
         this.numPages = null; // also held by actor
         this.pages = []; // sparse array of page number to details
-        this.pageGap = null;
         this.visiblePages = []; // sparse array of page number to time page became visible
         this.renderQueue = []; // page numbers to render when we have time
         this.renderingPage = false; // false at startup, to trigger immediate first render
         this.pageMeshPool = [];
-    }
+console.log(this);
 
-    cardDataUpdated(data) {
-        const { pdfLocation } = data.v;
-        if (pdfLocation === data.o.pdfLocation) return;
-
-        this.cancelRenderInProgress();
-        this.initializeDocProperties();
-        this.loadDocument(pdfLocation);
+        const loaded = this.pdf ? Promise.resolve() : this.loadDocument(this.actor._cardData.pdfLocation);
+        loaded.then(() => this.measureDocument());
     }
 
     updateShape() {
@@ -258,47 +168,17 @@ class PDFPawn {
         setTimeout(() => this.drawAtScrollPosition(), 0);
     }
 
-    async loadDocument(pdfLocation) {
-        this.pdf = null;
-        this.pdfLocation = null;
-        let objectURL;
-        try {
-            const buffer = await this.getBuffer(pdfLocation);
-            objectURL = URL.createObjectURL(new Blob([buffer]));
-            const pdfjsLib = await window.pdfjsPromise;
-            const pdf = await pdfjsLib.getDocument(objectURL).promise;
-            if (pdfLocation === this.actorPDFLocation()) {
-                this.pdf = pdf;
-                this.pdfLocation = pdfLocation;
-                console.log(`PDF with ${this.pdf.numPages} pages loaded`);
-                this.measureDocument(); // async
-            }
-        } catch (err) {
-            // PDF loading error
-            console.error(err.message);
-        }
-        if (objectURL) URL.revokeObjectURL(objectURL);
-    }
-
     async measureDocument() {
         const numPages = this.numPages = this.pdf.numPages;
 
         const firstPage = this.ensurePageEntry(1);
         await firstPage.pageReadyP;
-
-        if (!this.hasLatestPDF()) return; // it's been replaced while we were preparing
-
-        const { pdfLocation } = this;
-        const actorHasMeasurements = this.actor.measuredDocLocation === pdfLocation;
-
-        // gap is arbitrarily set as 2% of page height for landscape,
-        // 1% for portrait, 1.5% for square.
         const { width: firstWidth, height: firstHeight } = firstPage;
-        const gapPercent = firstWidth > firstHeight ? 2 : firstWidth === firstHeight ? 1.5 : 1;
-        this.adjustCardSize(firstWidth, firstHeight, gapPercent, !actorHasMeasurements); // includes setting pageGap, which we need in order to render anything
+        this.adjustCardSize(firstWidth, firstHeight); // includes setting pageGap
 
-        // the actor needs to know the number of pages, the page gap percent (although moot if only one page), and the maximum scroll position (page and percent).
-        if (!actorHasMeasurements) {
+        // the model needs to know the number of pages, the page gap percent (although moot if only one page), and the maximum scroll position (page and percent)
+        if (!this.actor.numPages) {
+            const gapPercent = this.pageGapPercent;
             let lastScroll;
             if (numPages === 1) {
                 lastScroll = { page: 1, percent: 0 };
@@ -328,19 +208,30 @@ class PDFPawn {
                 }
                 lastScroll = { page: lastPage, percent: lastPercent };
             }
-            this.say("docLoaded", { pdfLocation, pageGapPercent: gapPercent, numPages, maxScrollPosition: lastScroll });
+            this.say("docLoaded", { pageGapPercent: gapPercent, numPages: numPages, maxScrollPosition: lastScroll });
         }
     }
 
-    sizeSet() {
-        this.updateButtons();
+    async loadDocument(pdfLocation) {
+        const buffer = await this.getBuffer(pdfLocation);
+        const objectURL = URL.createObjectURL(new Blob([buffer]));
+        try {
+            const pdfjsLib = await window.pdfjsPromise;
+            this.pdf = await pdfjsLib.getDocument(objectURL).promise;
+            const numPages = this.pdf.numPages;
+            console.log(`PDF with ${numPages} pages loaded`);
+        } catch(err) {
+            // PDF loading error
+            console.error(err.message);
+        }
+        URL.revokeObjectURL(objectURL);
     }
 
     drawAtScrollPosition() {
-        if (!this.hasLatestPDF() || !this.pageGap) return;
+        if (!this.pdf || !this.pageGap) return;
 
-        const { scrollState } = this.actor;
-        if (!scrollState) return;
+        const { scrollPosition } = this.actor;
+        if (!scrollPosition) return;
 
         // where we already have a mesh for a page we're going to display, be sure
         // to reuse it
@@ -357,7 +248,7 @@ class PDFPawn {
 
         const { depth } = this.actor._cardData;
         const { cardWidth, cardHeight } = this;
-        const { page, percent } = scrollState;
+        const { page, percent } = scrollPosition;
         let p = page, yStart = percent / 100, shownHeight = 0;
         while (true) {
             const pageEntry = this.ensurePageEntry(p);
@@ -379,7 +270,7 @@ class PDFPawn {
                 const topGap = yStart < 0 ? -yStart * cardHeight : 0;
                 const pageHeight = Math.min((1 - imageTop) * fullPageHeight, cardHeight - shownHeight - topGap);
                 const imageBottom = imageTop + pageHeight / fullPageHeight;
-                const geo = pageMesh.geometry = new Microverse.THREE.PlaneGeometry(cardWidth, pageHeight);
+                const geo = pageMesh.geometry = new THREE.PlaneGeometry(cardWidth, pageHeight);
                 this.shape.add(pageMesh);
                 const pageY = cardHeight / 2 - shownHeight - topGap - pageHeight / 2;
                 pageMesh.position.set(0, pageY, depth / 2 + 0.003);
@@ -390,48 +281,26 @@ class PDFPawn {
                 uv.setXY(3, 1, 1 - imageBottom);
                 uv.needsUpdate = true;
 
-                if (!pageEntry.texture) pageEntry.texture = new Microverse.THREE.Texture(renderResult);
+                if (!pageEntry.texture) pageEntry.texture = new THREE.Texture(renderResult);
                 if (pageMesh.material.map !== pageEntry.texture) {
                     pageMesh.material.map = pageEntry.texture;
                     pageEntry.texture.needsUpdate = true;
                 }
             }
             shownHeight += fullPageHeight - fullPageHeight * yStart + this.pageGap; // whether or not page is being shown
-            if (p === this.numPages || shownHeight >= cardHeight) break;
+            if (p === this.numPages || shownHeight >= cardHeight) return;
             else {
                 p++;
                 yStart = 0;
             }
         }
-        this.updateButtons();
-    }
-
-    updateButtons() {
-        const { scrollState } = this.actor;
-        if (!scrollState) return;
-
-        const { upAvailable, downAvailable } = scrollState;
-        if (upAvailable === undefined) return; // not ready yet
-
-        this.buttonState = {
-            up: upAvailable,
-            down: downAvailable,
-        };
-        this.publish(this.id, "updateButtons");
-    }
-
-    setButtonHilite(buttonName, hilite) {
-        // not actually needed until we have some toggles
-        const groups = [["up"], ["down"]];
-        const group = groups.find(g => g.includes(buttonName));
-        this.publish(this.id, "updateHilites", { buttons: group, hilite });
     }
 
     makePageMesh() {
         const { cardWidth, cardHeight } = this;
-        const pageGeometry = new Microverse.THREE.PlaneGeometry(cardWidth, cardHeight);
-        const pageMaterial = new Microverse.THREE.MeshBasicMaterial({ color: "#fff", side: Microverse.THREE.DoubleSide, toneMapped: false });
-        const pageMesh = new Microverse.THREE.Mesh(pageGeometry, pageMaterial);
+        const pageGeometry = new THREE.PlaneGeometry(cardWidth, cardHeight);
+        const pageMaterial = new THREE.MeshBasicMaterial({ color: "#fff", side: THREE.DoubleSide, toneMapped: false });
+        const pageMesh = new THREE.Mesh(pageGeometry, pageMaterial);
         pageMesh.name = "page";
         return pageMesh;
     }
@@ -440,7 +309,10 @@ class PDFPawn {
         // this is invoked on every update, so if any page that we
         // want to test isn't ready yet (PageProxy hasn't been fetched) we don't
         // wait for it.
-        const { page, percent } = this.actor.scrollState;
+        const { scrollPosition } = this.actor;
+        if (!scrollPosition || !this.pageGap) return;
+
+        const { page, percent } = scrollPosition;
         const { cardWidth, cardHeight } = this;
 
         const prevVisible = this.visiblePages;
@@ -468,7 +340,10 @@ class PDFPawn {
     manageRenderState() {
         // invoked on every update.  schedule rendering for pages that are nearby,
         // and clean up render results and textures that aren't being used.
-        const { page } = this.actor.scrollState;
+        const { scrollPosition } = this.actor;
+        if (!scrollPosition || !this.pageGap) return; // not fully loaded yet
+
+        const { page } = scrollPosition;
         const { numPages } = this;
 
         const queue = this.renderQueue = [];
@@ -557,7 +432,10 @@ class PDFPawn {
     startRendering(pageNumber) {
         // because we allow rendering to be pre-empted, we can't be sure that it will
         // finish.
-        this.cancelRenderInProgress();
+        if (this.renderingPage) {
+            const pageEntry = this.ensurePageEntry(this.renderingPage);
+            pageEntry.renderTask.cancel(); // will reject the render promise
+        }
         this.renderingPage = pageNumber;
 
         const pageEntry = this.ensurePageEntry(pageNumber);
@@ -589,31 +467,27 @@ class PDFPawn {
         );
     }
 
-    cancelRenderInProgress() {
-        if (this.renderingPage) {
-            const pageEntry = this.ensurePageEntry(this.renderingPage);
-            pageEntry.renderTask.cancel(); // will reject the render promise
-        }
-    }
-
     finishedRendering(pageNumber) {
         if (this.visiblePages[pageNumber]) this.drawAtScrollPosition();
     }
 
-    adjustCardSize(width, height, gapPercent, tellActor) {
+    adjustCardSize(width, height) {
         // width and height are page pixels.
-        // invoked as soon as we discover the size of page 1
-        const { depth } = this.actor._cardData;
+        // sent as soon as we discover the size of page 1
+        const { depth, cornerRadius } = this.actor._cardData;
         const maxDim = Math.max(width, height);
         const cardScale = 1 / maxDim;
         const cardWidth = this.cardWidth = width * cardScale;
         const cardHeight = this.cardHeight = height * cardScale;
-        const obj = this.shape.children.find((o) => o.name === "2d");
+        const obj = this.substrateObj;
         obj.geometry.dispose();
         obj.geometry = this.squareCornerGeometry(cardWidth, cardHeight, depth);
 
+        // gap is arbitrarily set as 2% of page height for landscape,
+        // 1% for portrait, 1.5% for square.
+        const gapPercent = this.pageGapPercent = width > height ? 2 : width === height ? 1.5 : 1;
         this.pageGap = cardHeight * gapPercent / 100; // three.js units between displayed pages
-        if (tellActor) this.say("setCardData", { height: cardHeight, width: cardWidth });
+        this.say("setCardData", { height: cardHeight, width: cardWidth });
     }
 
     squareCornerGeometry(width, height, depth) {
@@ -621,16 +495,16 @@ class PDFPawn {
         let y = width / 2;
         let z = depth / 2;
 
-        let shape = new Microverse.THREE.Shape();
+        let shape = new THREE.Shape();
         shape.moveTo(-x, -y);
         shape.lineTo(-x, y);
         shape.lineTo(x, y);
         shape.lineTo(x, -y);
         shape.lineTo(-x, -y);
 
-        let extrudePath = new Microverse.THREE.LineCurve3(new Microverse.THREE.Vector3(0, 0, z), new Microverse.THREE.Vector3(0, 0, -z));
+        let extrudePath = new THREE.LineCurve3(new THREE.Vector3(0, 0, z), new THREE.Vector3(0, 0, -z));
         extrudePath.arcLengthDivisions = 3;
-        let geometry = new Microverse.THREE.ExtrudeGeometry(shape, { extrudePath });
+        let geometry = new THREE.ExtrudeGeometry(shape, { extrudePath });
 
         geometry.parameters.width = width;
         geometry.parameters.height = height;
@@ -671,8 +545,7 @@ class PDFPawn {
 
         this.pointerDownTime = Date.now();
         this.pointerDownY = p3d.xyz[1];
-        const { page, percent } = this.actor.scrollState;
-        this.pointerDownScroll = { page, percent };
+        this.pointerDownScroll = { ...this.actor.scrollPosition };
         this.pointerDragRange = 0; // how far user drags before releasing pointer
     }
 
@@ -729,29 +602,24 @@ class PDFPawn {
         }
     }
 
-    buttonPressed(buttonName) {
-        if (buttonName === "up") this.changePage(-1);
-        else if (buttonName === "down") this.changePage(1);
-    }
-
     changePage(change) {
         this.say("changePage", change);
     }
 
-    onKeyUp(_e) {
+    onKeyUp(e) {
     }
 
     update() {
-        if (this.actor.measuredDocLocation === this.pdfLocation && this.pageGap) {
-            this.updateVisiblePages();
-            this.manageRenderState();
-            this.processRenderQueue();
-        }
+        this.updateVisiblePages();
+        this.manageRenderState();
+        this.processRenderQueue();
     }
 
     teardown() {
         console.log("PDFPawn teardown");
-        this.cleanupShape();
+        const obj = this.substrateObj;
+        obj.geometry.dispose();
+        this.material.dispose();
 
         this.pageMeshPool.forEach(mesh => {
             mesh.geometry.dispose();
@@ -767,119 +635,14 @@ class PDFPawn {
     }
 }
 
-class PDFButtonActor {
-    // setup() {
-    // }
-
-    setProperties(props) {
-        this.buttonName = props.name;
-        this.svgScale = props.svgScale;
-        this.svgPosition = props.svgPosition; // [x, y] to nudge position
-    }
-}
-
-class PDFButtonPawn {
-    setup() {
-        this.subscribe(this.id, "2dModelLoaded", "svgLoaded");
-
-        this.addEventListener("pointerMove", "nop");
-        this.addEventListener("pointerEnter", "hilite");
-        this.addEventListener("pointerLeave", "unhilite");
-        this.addEventListener("pointerTap", "tapped");
-        // effectively prevent propagation
-        this.addEventListener("pointerDown", "nop");
-        this.addEventListener("pointerUp", "nop");
-        this.removeEventListener("pointerDoubleDown", "onPointerDoubleDown");
-        this.addEventListener("pointerDoubleDown", "nop");
-
-        this.subscribe(this.parent.id, "updateButtons", "updateState");
-        this.subscribe(this.parent.id, "updateHilites", "updateHilite");
-
-        this.enabled = true;
-    }
-
-    svgLoaded() {
-        // no hit-test response on anything but the hittable mesh set up below
-        const { buttonName, svgScale, svgPosition } = this.actor;
-        const svg = this.shape.children[0];
-        // apply any specified position nudging
-        svg.position.x += svgPosition[0];
-        svg.position.y += svgPosition[1];
-        this.shape.raycast = () => false;
-        svg.traverse(obj => obj.raycast = () => false);
-        const { depth } = this.actor._cardData;
-        const radius = 1.25 / svgScale / 2;
-        const segments = 32;
-        const geometry = new Microverse.THREE.CylinderGeometry(radius, radius, depth, segments);
-        const opacity = (buttonName === "mute" || buttonName === "unmute") ? 0 : 1;
-        const material = new Microverse.THREE.MeshBasicMaterial({ color: 0xa0a0a0, side: Microverse.THREE.DoubleSide, transparent: true, opacity });
-        const hittableMesh = new Microverse.THREE.Mesh(geometry, material);
-        hittableMesh.rotation.x = Math.PI / 2;
-        hittableMesh.position.z = -depth / 2;
-        this.shape.add(hittableMesh);
-        hittableMesh._baseRaycast = hittableMesh.raycast;
-        hittableMesh.raycast = (...args) => this.shape.visible ? hittableMesh._baseRaycast(...args) : false;
-        this.shape.visible = false; // until placed
-        this.updateState();
-    }
-
-    updateState() {
-        // invoked on every scroll update, so be efficient
-        const { buttonState } = this.parent;
-        if (!buttonState) return; // size not set yet
-
-        const wasVisible = this.shape.visible;
-        this.shape.visible = true;
-        const wasEnabled = this.enabled;
-        this.enabled = buttonState[this.actor.buttonName];
-        if (!wasVisible || this.enabled !== wasEnabled) this.setColor();
-    }
-
-    setColor() {
-        let svg = this.shape.children[0];
-        if (!svg) return;
-
-        let color = this.enabled ? (this.entered ? 0x202020 : 0x404040) : 0xc0c0c0;
-        svg.children.forEach(child => child.material[0].color.setHex(color));
-    }
-
-    hilite() {
-        this.parent.call("PDFView$PDFPawn", "setButtonHilite", this.actor.buttonName, true);
-        // this.publish(this.parent.id, "interaction");
-    }
-
-    unhilite() {
-        this.parent.call("PDFView$PDFPawn", "setButtonHilite", this.actor.buttonName, false);
-    }
-
-    updateHilite({ buttons, hilite }) {
-        if (!buttons.includes(this.actor.buttonName)) return;
-
-        this.entered = hilite;
-        this.setColor();
-    }
-
-    tapped() {
-        if (!this.enabled) return;
-
-        this.publish(this.parent.actor.id, "buttonPageChange", this.actor.buttonName === "down" ? 1 : -1);
-    }
-}
-
-
 export default {
     modules: [
         {
             name: "PDFView",
             actorBehaviors: [PDFActor],
             pawnBehaviors: [PDFPawn],
-        },
-        {
-            name: "PDFButton",
-            actorBehaviors: [PDFButtonActor],
-            pawnBehaviors: [PDFButtonPawn],
         }
     ]
 }
 
-/* globals Microverse */
+/* globals THREE */

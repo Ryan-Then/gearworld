@@ -20,6 +20,20 @@ export function init(Constants) {
     const baseSize = [20, 1, 20];
 
     Constants.DefaultCards = [
+			{
+            card: {
+			name:"base",
+			type: "object",
+			layers: ["pointer", "walk"],
+			rotation: [-Math.PI / 6, 0, 0],
+			translation: [0.5, 1, -2.5],
+			behaviorModules: ["Physics", "Cascade"],
+		        scale: [0.9, 0.2, 0.2],
+			color: 0x997777,
+			physicsShape: "cuboid",
+			physicsType: "positionBased",
+            }
+        },
 		{
             card: {
                 name: "world model",
