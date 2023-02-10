@@ -6,7 +6,7 @@ export function init(Constants) {
 	
     Constants.UserBehaviorDirectory = "behaviors/gearworld";
     Constants.UserBehaviorModules = [
-        "lights.js", "gridFloor.js", "earth.js", "openPortal.js", "openPortalSphere.js", "openPortalCylinder.js", "cascade.js", "rapier.js"
+        "lights.js", "gridFloor.js", "earth.js", "openPortal.js", "openPortalSphere.js", "openPortalCylinder.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
     ];
 	
     Constants.UseRapier = true;
@@ -20,6 +20,18 @@ export function init(Constants) {
     const baseSize = [20, 1, 20];
 
     Constants.DefaultCards = [
+        {
+            card: {
+                name: "biggear",
+                type: "object",
+                fileName: "./biggear.glb",
+                translation: [0.5, 0, 5.566177949493676],
+                rotation: [0, 0, 0],
+				behaviorModules: ["gearCounterSpin"],
+				shadow: true,
+                scale: [0.2, 0.2, 0.2]
+            }
+        },
 		{
             card: {
                 name: "world model",
