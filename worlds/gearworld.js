@@ -1,4 +1,4 @@
-
+//Latest gearworld
 export function init(Constants) {
     Constants.AvatarNames = [
         "newwhite"
