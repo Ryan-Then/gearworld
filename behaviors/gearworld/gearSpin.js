@@ -16,7 +16,7 @@ class SpinningActor {
         if (!this.spinning) {return;}
         this.future(20).step();
         this.angle+=this.spinSpeed;
-        this.set({rotation: Microverse.q_euler(0, 0, this.angle)}); // arguments are (x, y, z), set any given axis to "this.angle" to configure spin axis
+        this.set({rotation: Microverse.q_euler(0, this.angle, 0)}); // arguments are (x, y, z), set any given axis to "this.angle" to configure spin axis
     }
 
     toggle() {

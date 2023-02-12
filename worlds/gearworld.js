@@ -6,7 +6,7 @@ export function init(Constants) {
 	
     Constants.UserBehaviorDirectory = "behaviors/gearworld";
     Constants.UserBehaviorModules = [
-        "lights.js", "gridFloor.js", "earth.js", "openPortal.js", "openPortalSphere.js", "openPortalCylinder.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
+        "lights.js", "drawing.js", "gridFloor.js", "earth.js", "createCuboid.js", "createSphere.js", "createCylinder.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
     ];
 	
     Constants.UseRapier = true;
@@ -20,18 +20,6 @@ export function init(Constants) {
     const baseSize = [20, 1, 20];
 
     Constants.DefaultCards = [
-        {
-            card: {
-                name: "biggear",
-                type: "object",
-                fileName: "./biggear.glb",
-                translation: [0.5, 0, 5.566177949493676],
-                rotation: [0, 0, 0],
-				behaviorModules: ["gearCounterSpin"],
-				shadow: true,
-                scale: [0.2, 0.2, 0.2]
-            }
-        },
 		{
             card: {
                 name: "world model",
@@ -42,6 +30,47 @@ export function init(Constants) {
                 shadow: true,
             }
         },
+        {
+            card: {
+				type: "3d",
+				modelType: "glb",
+				name: "biggear",
+                dataLocation: "./assets/3D/biggear.glb",
+				rotation: [0, 0, 0],
+				translation: [0, 2, 0],
+				behaviorModules: ["gearCounterSpin"],
+				scale: [0.5, 0.5, 0.5],
+            }
+        },
+        {
+            card: {
+				type: "3d",
+				modelType: "glb",
+				name: "smallgear",
+                dataLocation: "./assets/3D/smallgear.glb",
+				rotation: [0, 0, 0],
+				color: 0xaa6666,
+				translation: [0, 2, -1.17],
+				behaviorModules: ["gearSpin"],
+				scale: [0.45, 0.45, 0.45],
+            }
+        },
+		{
+            card: {
+                name: "drawing",
+                layers: ["pointer"],
+                type: "2d",
+                textureType: "canvas",
+                behaviorModules: ["DrawingCanvas"],
+                textureWidth: 1024,
+                textureHeight: 1024,
+				rotation: [0, Math.PI/2, 0],
+                translation: [3, 0, 0],
+                fullBright: true,
+                width: 4,
+                height: 4
+            }
+		},			
         {
             card: {
                 name: "light",
