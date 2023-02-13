@@ -19,7 +19,7 @@ export function init(Constants) {
 
     const baseSize = [20, 1, 20];
 
-    Constants.DefaultCards = [
+    Constants.DefaultCards = [		
 		{
             card: {
                 name: "world model",
