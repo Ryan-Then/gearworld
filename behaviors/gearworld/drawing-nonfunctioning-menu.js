@@ -272,9 +272,7 @@ class DrawingCanvasActor {
             scrollBar: true,
         });	 */	
 		
-		
-		//This is the actionmenu card
-		/* this.createCard({
+		this.createCard({
             name: 'action menu',
             behaviorModules: ["Menu"],
             translation: [2.9, 0, 1.4],
@@ -287,9 +285,20 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.actionMenu.call("ActionMenu$ActionMenuActor", "show"); */
+		this.actionMenu.call("ActionMenu$ActionMenuActor", "show");
 		
-        		
+        /* this.createCard({
+            name: 'action menu',
+            behaviorModules: ["Menu"],
+            translation: [3, 0, 1.5],
+            width: 1.5,
+            height: 2,
+            type: "object",
+            //parent: this,
+            noSave: true,
+            color: 0xcccccc,
+            fullBright: true,
+            target: target.id}); */				
 		
         console.log("DrawingCanvasActor.setup");
     }

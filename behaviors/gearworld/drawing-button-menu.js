@@ -96,13 +96,12 @@ class DrawingCanvasActor {
         });	
 
 		//Select parameter buttons
-		
 		this.listen("select0", "select0");
-        this.select0 = this.createCard({
+        this.clearButton1 = this.createCard({
             name:"select0",
             type: "object",
             layers: ["pointer"],
-            translation: [-1.5, 0.6, 0],
+            translation: [-1.5, 0.2, 0],
             behaviorModules: ["Button"],
             color: 0xcccccc,
             shadow: true,
@@ -113,11 +112,11 @@ class DrawingCanvasActor {
         });	
 
 		this.listen("select1", "select1");
-        this.select1 = this.createCard({
+        this.clearButton1 = this.createCard({
             name:"select1",
             type: "object",
             layers: ["pointer"],
-            translation: [-1.5, 0.3, 0],
+            translation: [-1.5, -0.2, 0],
             behaviorModules: ["Button"],
             color: 0xcccccc,
             shadow: true,
@@ -125,83 +124,7 @@ class DrawingCanvasActor {
 	    publishTo: this.id,
 	    publishMsg: "select1",
             noSave: true
-        });	 
-
- 		this.listen("select2", "select2");
-        this.select2 = this.createCard({
-            name:"select2",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, 0, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select2",
-            noSave: true
-        });	 
-
- 		this.listen("select3", "select3");
-        this.select3 = this.createCard({
-            name:"select3",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -0.3, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select3",
-            noSave: true
-        });	 		
-		
-		this.listen("select4", "select4");
-        this.select4 = this.createCard({
-            name:"select4",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -0.6, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select4",
-            noSave: true
-        });	 	
-
-		this.listen("select5", "select5");
-        this.select5 = this.createCard({
-            name:"select5",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -0.9, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select5",
-            noSave: true
-        });	 		
-		
-		this.listen("select6", "select6");
-        this.select6 = this.createCard({
-            name:"select6",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -1.2, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select6",
-            noSave: true
-        });	 		
-		
+        });	
 		//Select parameter buttons		
 		
 		//Arrows
@@ -236,25 +159,6 @@ class DrawingCanvasActor {
         });	
 		//Arrows
 		
-		
-		console.log("setObject");
-        
-	    /* this.createCard({
-            name: 'action menu',
-            behaviorModules: ["Menu"],
-            translation: [3, 0, 1.5],
-            width: this.actionMenuWindow._cardData.width,
-            height: this.actionMenuWindow._cardData.height,
-            type: "object",
-            parent: this.actionMenuWindow,
-            noSave: true,
-            color: 0xcccccc,
-            fullBright: true,
-            target: target.id});	 */
-		
-		//this.subscribe(this.actionMenu.id, "doAction", "doAction");
-        			
-		
 /*         this.createCard({
             name:'code editor',
             translation: [3, 0, 1.5],//data.pose.translation,
@@ -272,74 +176,32 @@ class DrawingCanvasActor {
             scrollBar: true,
         });	 */	
 		
-		
-		//This is the actionmenu card
-		/* this.createCard({
-            name: 'action menu',
-            behaviorModules: ["Menu"],
-            translation: [2.9, 0, 1.4],
-			rotation: [0, -Math.PI / 2, 0],
-            width: 1.6,
-            height: 2,
-            type: "2d",
-            noSave: true,
-			fullBright: true,
-            depth: 0.01,
-            cornerRadius: 0.05,
-        });
-		this.actionMenu.call("ActionMenu$ActionMenuActor", "show"); */
-		
-        		
+        			
 		
         console.log("DrawingCanvasActor.setup");
     }
-//end setup()
 
-    show() {
-        if (this.menu) {
-            this.menu.destroy();
-        }
-
-        /* this.createCard({
+    setObject(target) {
+        console.log("setObject");
+        this.target = target;
+	       
+		this.actionMenuWindow = this.newWindow({x: 0.8, y: 0.6}, {x: 0.9, y: -1.1});
+        this.actionMenu = this.createCard({
             name: 'action menu',
-            behaviorModules: ["Menu"],
+            behaviorModules: ["ActionMenu"],
             translation: [3, 0, 1.5],
-            width: 1.5,
-            height: 2,
+            width: this.actionMenuWindow._cardData.width,
+            height: this.actionMenuWindow._cardData.height,
             type: "object",
-            //parent: this,
+            parent: this.actionMenuWindow,
             noSave: true,
             color: 0xcccccc,
             fullBright: true,
-            target: target.id});	 */
-
-        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
-        this.updateSelections();
-
-        this.listen("fire", "doAction");
-    }
-
-    updateSelections() {
-        console.log("action updateSelections");
-        let items = [
-            {label: "actions"},
-            {label: "------------"},
-            {label: "Duplicate"},
-            {label: "Delete"},
-            {label: "Save"},
-        ];
-
-        this.menu.call("Menu$MenuActor", "setItems", items);
-    }
-
-    doAction(data) {
-        this.publish(this.id, "doAction", data);
-    }
-
-    itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }
-	
+            target: target.id});	
+		
+		this.subscribe(this.actionMenu.id, "doAction", "doAction");
+        this.actionMenu.call("ActionMenu$ActionMenuActor", "show");		
+	}
 	
     setData(data) {
         let {global, strokeLists} = data;
@@ -376,83 +238,6 @@ class DrawingCanvasActor {
         this.say("drawLine", segment);
     }
 
-    select0() {	
-		console.log("this is select0");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 0;
-		
-		console.log("myAvatar.anotherArrayChoice in select0");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }
-	
-    select1() {	
-		console.log("this is select1");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 1;
-		
-		console.log("myAvatar.anotherArrayChoice in select0");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }
-
-    select2() {	//boolean
-		console.log("this is select2");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 2;
-		
-		console.log("myAvatar.anotherArrayChoice in select0");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }
-
-    select3() {	
-		console.log("this is select3");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 3;
-		
-		console.log("myAvatar.anotherArrayChoice in select0");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }
-
-    select4() {	
-		console.log("this is select4");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 4;
-		
-		console.log("myAvatar.anotherArrayChoice in select0");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }
-
-    select5() {	
-		console.log("this is select5");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 5;
-		
-		console.log("myAvatar.anotherArrayChoice in select0");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }	    
-	
-	select6() {	
-		console.log("this is select6");
-		//////START
-		
-		myAvatar.anotherArrayChoice = 6;
-		
-		console.log("myAvatar.anotherArrayChoice in select6");
-        console.log(myAvatar.anotherArrayChoice);
-        
-    }	
-
     clear(_viewId) {
         // this._get("global").length = 0;
         // this._get("strokeLists").clear();
@@ -467,47 +252,8 @@ class DrawingCanvasActor {
         this._cardData.globalDrawing = [];
         this._cardData.strokeLists = new Map();
         this.say("drawAll1");
-    }
-
-	increase() {
-		let anotherArrayElement = myAvatar.anotherArray[myAvatar.anotherArrayChoice];
-		
-		let trueOrFalse = Number.isInteger(anotherArrayElement);
-		console.log(trueOrFalse);
-		if (!trueOrFalse){
-		if (anotherArrayElement == false){
-			myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
-		} 
-		if (anotherArrayElement == true){
-			myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
-		}
-		} else {
-		anotherArrayElement++;
-		myAvatar.anotherArray[myAvatar.anotherArrayChoice] = anotherArrayElement;
-		}
-		console.log(anotherArrayElement);
-	}	
+    }	
 	
-	decrease() {
-		let anotherArrayElement = myAvatar.anotherArray[myAvatar.anotherArrayChoice];
-		
-		let trueOrFalse = Number.isInteger(anotherArrayElement);
-		console.log(trueOrFalse);
-		if (!trueOrFalse){
-		if (anotherArrayElement == false){
-			myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
-		} 
-		if (anotherArrayElement == true){
-			myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
-		}
-		} else {
-		anotherArrayElement--;
-		myAvatar.anotherArray[myAvatar.anotherArrayChoice] = anotherArrayElement;
-		}
-		console.log(anotherArrayElement);
-	}		
-	
-	//work in progress
 	setObject() {console.log("set object");}
 }
 
@@ -542,14 +288,14 @@ class DrawingCanvasPawn {
 		myAvatar.anotherArray = [];
 		myAvatar.anotherArray.push(3);//varSteps
 		myAvatar.anotherArray.push(1);//varDepth
-		myAvatar.anotherArray.push(false);//varBevelEnabled
+		myAvatar.anotherArray.push("");//varBevelEnabled
 		myAvatar.anotherArray.push(0);//varBevelThickness
 		myAvatar.anotherArray.push(0);//varBevelSize
 		myAvatar.anotherArray.push(0);//varBevelOffset
 		myAvatar.anotherArray.push(0);//varBevelSegments	
 		
 
-		//this.makeButton();
+		this.makeButton();
 		this.addEventListener("pointerTap", "setColor");
 
 		//randomize pen colour when initiated (including when canvas is reset)
@@ -565,6 +311,17 @@ class DrawingCanvasPawn {
         console.log(width, height);
     }
 	
+	increase(num) {
+		num++;
+		return num;
+	}	
+	
+	decrease(num) {
+		num--;
+		return num;
+	}	
+	
+	
 	
 	//WORKING
 	setPoint(evt){	
@@ -575,8 +332,7 @@ class DrawingCanvasPawn {
         let offsetX = evt.x;
         let offsetY = evt.y;
 		myAvatar.anArray.push([offsetX, offsetY]);
-		
-		console.log("myAvatar.anArray in setPoint(evt)");
+			
 		console.log(myAvatar.anArray);	
 		return;
 	}	
@@ -603,9 +359,19 @@ class DrawingCanvasPawn {
 	//let myNumber = 10;
 	//myNumber = decrementByOne(myNumber);
 	//console.log(myNumber); // Output: 9	
+
+
+    select0() {	
+		console.log("this is select0");
+		//////START
+		
+		let anotherArrayChoice = myAvatar.anotherArray[0];
+		
+        console.log("anotherArrayChoice");
+        
+    }
 	
     clear() {	
-		//clear is the button on the RIGHT. It generates STRAIGHT-SIDED shapes
 		//////START
 		const shape = new THREE.Shape();
 		
@@ -630,16 +396,18 @@ class DrawingCanvasPawn {
 		
 		//ExtrudeGeometry
 		
+		console.log("anotherArrayChoice");
+		console.log(anotherArrayChoice);
+		
 		console.log("anotherArray");
 		console.log(myAvatar.anotherArray);
 		
 		let varSteps = myAvatar.anotherArray[0];
 		let varDepth = myAvatar.anotherArray[1];
 		
-		var varBevelEnabled;
-		if (myAvatar.anotherArray[2]){ //check if false
-			console.log(myAvatar.anotherArray[2]);
-			let varBevelEnabled = 1;
+		let varBevelEnabled = false;
+		if (myAvatar.anotherArray[2]){
+			let varBevelEnabled = true;
 		}
 		
 		let varBevelThickness = myAvatar.anotherArray[3];
@@ -676,7 +444,6 @@ class DrawingCanvasPawn {
     }	
 
     clear1() {	
-		//clear1 is the button on the LEFT. It generates CURVED shapes
 		console.log("this is clear1");
 		//////START
 		const shape = new THREE.Shape();
@@ -704,28 +471,16 @@ class DrawingCanvasPawn {
 			n++;
 			n++;
 		}
-		let varSteps = myAvatar.anotherArray[0];
-		let varDepth = myAvatar.anotherArray[1];
-		
-		var varBevelEnabled;
-		if (myAvatar.anotherArray[2]){ //check if false
-			console.log(myAvatar.anotherArray[2]);
-			let varBevelEnabled = 1;
-		}
-		
-		let varBevelThickness = myAvatar.anotherArray[3];
-		let varBevelSize = myAvatar.anotherArray[4];
-		let varBevelOffset = myAvatar.anotherArray[5];
-		let varBevelSegments = myAvatar.anotherArray[6];
-		
-		let extrudeSettings = {
-			steps: varSteps, //3
-			depth: varDepth, //1
-			bevelEnabled: varBevelEnabled, //false
-			bevelThickness: varBevelThickness,//0
-			bevelSize: varBevelSize,//0
-			bevelOffset: varBevelOffset,//0
-			bevelSegments: varBevelSegments//0
+
+
+		const extrudeSettings = {
+			steps: 3, //number of connections
+			depth: 1, //depth means thickness
+			bevelEnabled: false, //true
+			bevelThickness: 0,//1
+			bevelSize: 0,//1
+			bevelOffset: 0,
+			bevelSegments: 0//1
 		};
 
 		const geometry1 = new THREE.ExtrudeGeometry( shape, extrudeSettings );
@@ -922,8 +677,8 @@ class ButtonActor {
 		console.log("this is anotherArray");	
 		console.log(myAvatar.anotherArray);		
 		
-		console.log("this is anotherArrayChoice before select0");	
-		console.log(myAvatar.anotherArrayChoice);
+		console.log("this is anotherArrayChoice");	
+		console.log(anotherArrayChoice);
 		
         this.publish(this._cardData.publishTo, this._cardData.publishMsg)
         //console.log("doit");
@@ -1032,6 +787,16 @@ class ActionMenuActor {
             this.menu.destroy();
         }
 
+        this.menu = this.createCard({
+            name: 'action menu',
+            behaviorModules: ["Menu"],
+            parent: this,
+            type: "2d",
+            noSave: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+        });
+
         this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
         this.updateSelections();
 
@@ -1060,6 +825,82 @@ class ActionMenuActor {
     }
 }
 
+class ArrowPawn {
+
+
+    generateText3D() {
+/*         if (this.textMesh) {this.teardown();}
+        let THREE = Microverse.THREE;
+        let text = this.actor._cardData.text || 'MICROVERSE';
+        let color = this.actor._cardData.color || 0xaaffaa;
+        let frameColor = this.actor._cardData.frameColor || color;
+        let font = this.actor._cardData.fFont || 'helvetiker'; // 'helvetiker', 'optimer', 'gentilis', 'droid/droid_sans', 'droid/droid_serif'
+        let weight = this.actor._cardData.weight || 'regular';
+        let depth = this.actor._cardData.depth || 0.05; // THREE.TextGeometry refers to this as height
+        let height = this.actor._cardData.height || 0.25; // THREE.TextGeometry refers to this a size
+        let curveSegments = this.actor._cardData.curveSegments || 4;
+        let bevelThickness = this.actor._cardData.bevelThickness || 0.01;
+        let bevelSize = this.actor._cardData.bevelSize || 0.01;
+        let bevelEnabled = this.actor._cardData.bevelEnabled; // false unless set by user
+        let emissive = this.actor._cardData.fullBright ? color : 0x000000;
+
+        const loader = new THREE.FontLoader();
+        loader.load( './assets/fonts/' + font + '_' + weight + '.typeface.json',  response => {
+
+            let font = response;
+            let materials = [
+                new THREE.MeshPhongMaterial( { color: color, flatShading: true, emissive: emissive } ), // front
+                new THREE.MeshPhongMaterial( { color: frameColor } ) // side
+            ];
+            if (emissive) {materials[0].emissive.setHex( emissive ).convertSRGBToLinear(); }
+            let textGeo = new THREE.TextGeometry( text, {
+                font: font,
+
+                size: height, // Croquet refers to this as height
+                height: depth, // Croquet refers to this as depth
+                curveSegments: curveSegments,
+
+                bevelThickness: bevelThickness,
+                bevelSize: bevelSize,
+                bevelEnabled: bevelEnabled
+
+            });
+
+            textGeo.computeBoundingBox();
+
+            const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+
+            this.textMesh = new THREE.Mesh( textGeo, materials );
+            this.textMesh.position.set(centerOffset,0,0);
+
+            this.shape.add( this.textMesh ); */
+			
+/* 		const triangleShape = new THREE.Shape();
+			
+		triangleShape.moveTo( 0, 0 );
+		triangleShape.lineTo( -15, -15 );
+		triangleShape.lineTo( 15, 15 );
+		triangleShape.lineTo( 0, 0 );
+			
+		let extrudeSettings1 = {
+			steps: 3, //number of connections
+			depth: 1, //depth means thickness
+			bevelEnabled: true, //true
+			bevelThickness: 1,//1
+			bevelSize: 1,//1
+			bevelOffset: 0,
+			bevelSegments: 1//1
+		};
+
+		const geometry2 = new THREE.ExtrudeGeometry( shape, extrudeSettings1 );
+		const material2 = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+		const newShape1 = new THREE.Mesh( geometry2, material2 ) ;
+		this.shape.add(newShape1);		 */	
+			
+        } ;
+    }
+
+
 
 export default {
     modules: [
@@ -1077,10 +918,14 @@ export default {
             name: "BehaviorMenu",
             actorBehaviors: [BehaviorMenuActor]
         },
-		{
+        {
             name: "ActionMenu",
             actorBehaviors: [ActionMenuActor]
-        }
+        },
+        {
+            name: "Arrows",
+            pawnBehaviors: [ArrowPawn]
+        }		
     ]
 };
 
