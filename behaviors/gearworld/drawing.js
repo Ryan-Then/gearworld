@@ -97,144 +97,6 @@ class DrawingCanvasActor {
 
 		//Select parameter buttons
 		
-		this.listen("select0", "select0");
-        this.select0 = this.createCard({
-            name:"select0",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, 0.6, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select0",
-            noSave: true
-        });	
-
-		this.listen("select1", "select1");
-        this.select1 = this.createCard({
-            name:"select1",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, 0.3, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select1",
-            noSave: true
-        });	 
-
- 		this.listen("select2", "select2");
-        this.select2 = this.createCard({
-            name:"select2",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, 0, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select2",
-            noSave: true
-        });	 
-
- 		this.listen("select3", "select3");
-        this.select3 = this.createCard({
-            name:"select3",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -0.3, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select3",
-            noSave: true
-        });	 		
-		
-		this.listen("select4", "select4");
-        this.select4 = this.createCard({
-            name:"select4",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -0.6, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select4",
-            noSave: true
-        });	 	
-
-		this.listen("select5", "select5");
-        this.select5 = this.createCard({
-            name:"select5",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -0.9, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select5",
-            noSave: true
-        });	 		
-		
-		this.listen("select6", "select6");
-        this.select6 = this.createCard({
-            name:"select6",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-1.5, -1.2, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "select6",
-            noSave: true
-        });	 		
-		
-		//Select parameter buttons		
-		
-		//Arrows
-		this.listen("increase", "increase");
-        this.clearButton1 = this.createCard({
-            name:"increaseButton",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-2.1, 0.2, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "increase",
-            noSave: true
-        });	
-
-		this.listen("decrease", "decrease");
-        this.clearButton1 = this.createCard({
-            name:"decreaseButton",
-            type: "object",
-            layers: ["pointer"],
-            translation: [-2.1, -0.2, 0],
-            behaviorModules: ["Button"],
-            color: 0xcccccc,
-            shadow: true,
-            parent: this,
-	    publishTo: this.id,
-	    publishMsg: "decrease",
-            noSave: true
-        });	
-		//Arrows
 		
 		
 		console.log("setObject");
@@ -272,7 +134,7 @@ class DrawingCanvasActor {
             scrollBar: true,
         });	 */	
 		
-		this.createCard({
+		this.actionMenu = this.createCard({
             name: 'action menu',
             behaviorModules: ["Menu"],
             translation: [2.9, 0, 1.4],
@@ -331,18 +193,34 @@ class DrawingCanvasActor {
     updateSelections() {
         console.log("action updateSelections");
         let items = [
-            {label: "actions"},
-            {label: "------------"},
-            {label: "Duplicate"},
-            {label: "Delete"},
-            {label: "Save"},
+            {label: "Extrusion Steps"},
+            {label: "Extrusion Depth"},
+            {label: "Enable Bevel"},
+			{label: "Bevel Thickness"},
+			{label: "Bevel Size"},
+			{label: "Bevel Offset"},
+			{label: "Bevel Segments"},
         ];
 
         this.menu.call("Menu$MenuActor", "setItems", items);
     }
-
-    doAction(data) {
-        this.publish(this.id, "doAction", data);
+	
+	doAction(data) {
+		console.log("data.action registered");
+        if (!this.target) {return;}
+        if (data.action === "Extrusion Steps") {
+            //this.target.destroy();
+            //this.destroy();
+            return;
+        }
+        if (data.action === "Extrusion Depth") {
+            //this.target.duplicate(data);
+            return;
+        }
+        if (data.action === "Enable Bevel") {
+            //this.target.saveCard(data);
+            return;
+        }
     }
 
     itemsUpdated() {
@@ -541,6 +419,8 @@ class DrawingCanvasPawn {
 		let myAvatar = this.getMyAvatar();
 		myAvatar.anArray = [];
 		
+		myAvatar.points = [];
+		
 		//hard coded shortcut method of creating a new global array to store variables
 		//these are the default values for the extrusionsettings
 		//to change the value:
@@ -559,7 +439,7 @@ class DrawingCanvasPawn {
 		
 
 		//this.makeButton();
-		this.addEventListener("pointerTap", "setColor");
+		//this.addEventListener("pointerTap", "setColor");
 
 		//randomize pen colour when initiated (including when canvas is reset)
         this.color = this.randomColor();
@@ -584,6 +464,18 @@ class DrawingCanvasPawn {
         let offsetX = evt.x;
         let offsetY = evt.y;
 		myAvatar.anArray.push([offsetX, offsetY]);
+		
+		myAvatar.points.push( new THREE.Vector3( offsetX * 0.001, 0, offsetY * 0.001 ) );
+		
+		if (myAvatar.points.length > 1){
+			
+			const material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
+			const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.points );
+			const line = new THREE.Line( geometry, material );
+			line.rotation.z = -Math.PI / 2;
+			line.rotation.x = -Math.PI / 2;
+			scene.add( line );
+		}
 		
 		console.log("myAvatar.anArray in setPoint(evt)");
 		console.log(myAvatar.anArray);	
@@ -673,8 +565,11 @@ class DrawingCanvasPawn {
 		this.shape.add(newShape);
 		
 		myAvatar.anArray = [];
+		
 		console.log(myAvatar.anArray);
-		//////END			
+		//////END	
+
+		console.log(myAvatar.points);
 		
         console.log("CLEAR")
         let canvas = this.canvas;
@@ -960,80 +855,7 @@ class ButtonPawn {
     }
 }
 
-class BehaviorMenuActor {
-    show() {
-        if (this.menu) {
-            this.menu.destroy();
-        }
 
-        let editIconLocation = "3rAfsLpz7uSBKuKxcjHvejhWp9mTBWh8hsqN7UnsOjJoGgYGAgFIXV0UGx4XAVwHAVwRAB0DBxcGXBsdXQddNRYkEAseOwEzGSMRMCoWQTUKEwQLBSc5JSsrQF0bHVwRAB0DBxcGXB8bEQAdBBcAARddKwMGHktLKksKNjocPyIiFBMfJRkzIyRKND4zIAZGRUVGCjECAEEFHRM6N10WEwYTXTUnEQYFHTsXOUQaAxUVFgVERR4kNxY8A0QiBAsQX0dDHTslBipENh83HQU";
-
-        this.menu = this.createCard({
-            name: 'behavior menu',
-			translation: [3, 0, 1.5],
-            behaviorModules: ["Menu"],
-            multiple: true,
-            parent: this,
-            type: "2d",
-            noSave: true,
-            depth: 0.01,
-            cornerRadius: 0.05,
-            menuIcons: {"_": editIconLocation, "apply": null, "------------": null},
-        }); 
-
-        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
-        this.updateSelections();
-
-        this.listen("fire", "setBehaviors");
-        this.subscribe(this._cardData.target, "behaviorUpdated", "updateSelections");
-    }
-
-    updateSelections() {
-        console.log("updateSelections");
-        let target = this.service("ActorManager").get(this._cardData.target);
-        let items = [];
-
-        this.targetSystemModules = [];
-        let behaviorModules = [...this.behaviorManager.modules];
-
-        behaviorModules.forEach(([k, v]) => {
-            if (!v.systemModule) {
-                let selected = target._behaviorModules?.indexOf(k) >= 0;
-                let obj = {label: k, selected};
-                items.push(obj);
-            } else {
-                if (target._behaviorModules?.indexOf(k) >= 0) {
-                    this.targetSystemModules.push({label: k, selected: true});
-                }
-            }
-        });
-
-        items.push({label: "------------"});
-        items.push({label: 'apply'});
-        this.menu.call("Menu$MenuActor", "setItems", items);
-    }
-
-    setBehaviors(data) {
-        console.log("setBehaviors");
-        let target = this.service("ActorManager").get(this._cardData.target);
-        let selection = [ ...this.targetSystemModules, ...data.selection];
-        let behaviorModules = [];
-
-        selection.forEach((obj) => {
-            let {label, selected} = obj;
-            if (target.behaviorManager.modules.get(label)) {
-                if (selected) {
-                    behaviorModules.push(label);
-                }
-            }
-        });
-        target.updateBehaviors({behaviorModules});
-    }
-
-    itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }
-}
 
 class ActionMenuActor {
     show() {
@@ -1050,11 +872,13 @@ class ActionMenuActor {
     updateSelections() {
         console.log("action updateSelections");
         let items = [
-            {label: "actions"},
-            {label: "------------"},
-            {label: "Duplicate"},
-            {label: "Delete"},
-            {label: "Save"},
+            {label: "Extrusion Steps"},
+            {label: "Extrusion Depth"},
+            {label: "Enable Bevel"},
+			{label: "Bevel Thickness"},
+			{label: "Bevel Size"},
+			{label: "Bevel Offset"},
+			{label: "Bevel Segments"},
         ];
 
         this.menu.call("Menu$MenuActor", "setItems", items);
@@ -1082,10 +906,7 @@ export default {
             actorBehaviors: [ButtonActor],
             pawnBehaviors: [ButtonPawn],
         },
-		{
-            name: "BehaviorMenu",
-            actorBehaviors: [BehaviorMenuActor]
-        },
+		
 		{
             name: "ActionMenu",
             actorBehaviors: [ActionMenuActor]
