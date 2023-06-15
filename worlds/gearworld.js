@@ -26,6 +26,30 @@ export function init(Constants) {
                 shadow: true,
             }
         },
+		
+
+        {
+            card: {
+                name: "text editor",
+                className: "TextFieldActor",
+                translation: [2.9, 0.36, 1.16],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.0,
+                type: "text",
+                runs: [{text: "13"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                //color: 0xf4e056,
+                frameColor: frameColor,
+                width: 0.5,
+                height: 0.15,
+                textScale: 0.002,
+                shadow: true,
+            },
+			id: "precisionInput",
+        },		
+		
         {
             card: {
 				type: "3d",
@@ -54,29 +78,25 @@ export function init(Constants) {
 
 
 
-		/* {		
+		{		
 		card: {
-            name: 'menu label',
-						//depth height side
-			translation: [3.0, -0.31, 1.1],
-			rotation: [0, -Math.PI / 2, 0],
-            depth: 0.05,
-			scale: [1.5, 1.7, 1.5],
-			type: "text",
-			runs: [{text: "Extrusion Steps\n\nExtrusion Depth\n\nEnable Bevel\n\nBevel Thickness\n\nBevel Size\n\nBevel Offset\n\nBevel Segments"}],
-			margins: {left: 20, top: 20, right: 20, bottom: 20},
-			backgroundColor: 0x888888,
-			color: 0x000000,
-			//color: 0xf4e056,
-			frameColor: frameColor,
-			width: 0.8,
-			height: 1.25,
-			textScale: 0.002,
-			shadow: true,
-			}
-		}, */
-
-
+                name: "extrusion parameter display",
+                translation: [2.9, 0, 1],
+                rotation: [0, -Math.PI / 2, 0],
+                scale: [0.5, 0.5, 0.5],
+                type: "2d",
+                textureType: "canvas",
+                textureWidth: 375,
+                textureHeight: 1125,
+                width: 1.25,
+                height: 3.75,
+                frameColor: frameColor,
+                // color: 0xffffff,
+                
+                behaviorModules: ["smallDisplay"],
+            },
+			
+		},
 
 
 
