@@ -30,7 +30,7 @@ export function init(Constants) {
 
         {
             card: {
-                name: "text editor",
+                name: "text editor 1",
                 className: "TextFieldActor",
                 translation: [2.9, 0.36, 1.16],
                 rotation: [0, -Math.PI / 2, 0],
@@ -46,8 +46,8 @@ export function init(Constants) {
                 height: 0.15,
                 textScale: 0.002,
                 shadow: true,
-            },
-			id: "precisionInput",
+				behaviorModules: ["precisionInput"],
+            }
         },		
 		
         {
