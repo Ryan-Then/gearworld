@@ -98,11 +98,31 @@ class DrawingCanvasActor {
         });
 		this.clickToGenerate.call("clickToGenerate$clickToGenerate", "show");
 		this.subscribe(this.clickToGenerate.id, "doAction3", "checkIntersection");				
-		
+
+		this.precisionInput = this.createCard({
+            name: 'precisionInput',
+            behaviorModules: ["Menu"],
+            translation: [2.9, 0.4, 2],
+			rotation: [0, -Math.PI / 2, 0],
+            width: 0.35,
+            height: 0.2,
+            type: "2d",
+            noSave: true,
+			color: 0xcccccc,
+			fullBright: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+        });
+		this.precisionInput.call("precisionInput$precisionInputActor", "show");
+		this.subscribe(this.precisionInput.id, "doAction4", "passData");			
 		
         console.log("DrawingCanvasActor.setup");
     }
 //end setup()
+
+	passData(data){
+		console.log("Data passed: ", data);
+	}
 
 	checkIntersection(data) {
 		console.log("checkIntersection function triggered");
@@ -1019,6 +1039,57 @@ class smallDisplayPawn {
     }
 }
 
+class precisionInputActor {
+	setup(){
+		this.subscribe(this.id, "text", this.handleText);
+
+	}
+    show() {
+        if (this.menu1) {
+            this.menu1.destroy();
+        }
+
+        this.menu1 = this.createCard({
+            name: 'click to submit',
+            behaviorModules: ["Menu"],
+            parent: this,
+            type: "2d",
+            noSave: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+			translation: [0, 0, 0.02]
+        });
+
+        this.subscribe(this.menu1.id, "itemsUpdated", "itemsUpdated");
+        this.updateSelections4();
+
+        this.listen("fire", "doAction4");
+    }
+
+    updateSelections4() {
+        console.log("action updateSelections4");
+        let items = [
+            {label: "Submit"}
+        ];
+
+        this.menu1.call("Menu$MenuActor", "setItems", items);
+    }
+
+    doAction4() {
+		const plainText = this.value;
+		console.log("this.value is: ", plainText);
+		console.log("this.content is: ", this.content);
+	}
+	
+	handleText(){
+		console.log("handleText Triggered");
+	}
+
+    itemsUpdated() {
+        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
+    }
+}
+
 export default {
     modules: [
         {
@@ -1047,6 +1118,11 @@ export default {
 		{
             name: "smallDisplay",
             pawnBehaviors: [smallDisplayPawn]
+        },
+		{
+            name: "precisionInput",
+			actorBehaviors: [precisionInputActor]
+            
         }
     ]
 };
