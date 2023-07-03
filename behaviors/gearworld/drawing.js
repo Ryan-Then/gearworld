@@ -1,33 +1,19 @@
-/**
-A stroke object looks to have the following schema, if we define an actual class for it.
-However, we use plain JS objects in the actual implementation.
-class Stroke {
-    constructor() {
-        this.done = true;
-        this.segments = [];
-    }
-    addSegment(segment) {
-        this.segments.push(segment);
-    }
-    undo() {
-        this.done = false;
-    }
-    redo() {
-        this.done = true;
-    }
-}
-strokeLists is a Map keyed by the viewId so that undo request from a user can be handled.
-globals is an ordered list that stores all strokes since the beginning of the session.
-*/
-
 class DrawingCanvasActor {
     setup() {
 		const drawingCanvas = new DrawingCanvasActor();
 		drawingCanvas.name = "myDrawingCanvas";		
 		
+		this.addEventListener("pointerDown", "pointerDown");
+		this.addEventListener("pointerEnter", "hilite");
+		this.addEventListener("pointerLeave", "unhilite");
+		
         this.subscribe(this.sessionId, "view-exit", "viewExit");
         this.listen("startLine", "startLine");
         this.listen("addLine", "addLine");
+		
+		this.subscribe("canvasExtrude", "canvasExtrude", this.canvasExtrude);
+		
+		this.subscribe("calculateData", "calculateData", this.calculateData);
 		
 		//FROM PROPERTY SHEET
 		if (this.windows) {
@@ -88,7 +74,7 @@ class DrawingCanvasActor {
             translation: [3, 0.8, 0],
 			rotation: [0, -Math.PI / 2, 0],
             width: 0.7,
-            height: 0.5,
+            height: 0.25,
             type: "2d",
             noSave: true,
 			color: 0xcccccc,
@@ -113,36 +99,64 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.precisionInput.call("precisionInput$precisionInputActor", "show");
-		this.subscribe(this.precisionInput.id, "doAction4", "passData");			
+		this.precisionInput.call("precisionInput$precisionInputActor", "show");			
+		
+		//creates sphere
 		
         console.log("DrawingCanvasActor.setup");
     }
 //end setup()
 
-	passData(data){
-		console.log("Data passed: ", data);
-	}
+    setColor() { // Changes colour to green when button is pressed
+		console.log("setColor() triggered");
+    }
+
+    hilite() {
+        this.entered = true;
+        this.setColor();
+    }
+
+    unhilite() {
+        this.entered = false;
+        this.setColor();
+    }
+
+    pointerDown(evt) {
+		console.log("in actor evt", evt);
+		
+		let vec3 = new Microverse.THREE.Vector3(...evt.xyz);
+		
+        let geometry = new Microverse.THREE.SphereGeometry(0.015, 16, 16);
+        let material = new Microverse.THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+        let vertexMarker = new Microverse.THREE.Mesh(geometry, material);
+		vertexMarker.position.x = vec3.x;
+		vertexMarker.position.y = vec3.y;
+		vertexMarker.position.z = vec3.z;
+
+		scene.add(vertexMarker);
+		this.setColor();		
+        
+    }
 
 	checkIntersection(data) {
 		console.log("checkIntersection function triggered");
 		if (data.action === "Extrude Polygon") {
 			
 
-			let startPoint2 = myAvatar.anArray.length - 2;
-			let endPoint2 = myAvatar.anArray.length - 1;
+			let startPoint2 = myAvatar.vertexPoints.length - 2;
+			let endPoint2 = myAvatar.vertexPoints.length - 1;
 			
 
 		
-			const startPoint1X = myAvatar.anArray[0][0];
-			const startPoint1Y = myAvatar.anArray[0][1];
-			const endPoint1X = myAvatar.anArray[1][0];
-			const endPoint1Y = myAvatar.anArray[1][1];
+			const startPoint1X = myAvatar.vertexPoints[0][0];
+			const startPoint1Y = myAvatar.vertexPoints[0][1];
+			const endPoint1X = myAvatar.vertexPoints[1][0];
+			const endPoint1Y = myAvatar.vertexPoints[1][1];
 			
-			const startPoint2X = myAvatar.anArray[startPoint2][0];
-			const startPoint2Y = myAvatar.anArray[startPoint2][1];
-			const endPoint2X = myAvatar.anArray[endPoint2][0];
-			const endPoint2Y = myAvatar.anArray[endPoint2][1];
+			const startPoint2X = myAvatar.vertexPoints[startPoint2][0];
+			const startPoint2Y = myAvatar.vertexPoints[startPoint2][1];
+			const endPoint2X = myAvatar.vertexPoints[endPoint2][0];
+			const endPoint2Y = myAvatar.vertexPoints[endPoint2][1];
 
 			const m1 = (endPoint1Y - startPoint1Y) / (endPoint1X - startPoint1X);
 			const c1 = startPoint1Y - m1 * startPoint1X;
@@ -157,70 +171,181 @@ class DrawingCanvasActor {
 			myAvatar.substituteArray = [];
 			myAvatar.substituteArray.push([x, y]);
 			
-			for (let n = 1; n < myAvatar.anArray.length - 1; n++){
-				myAvatar.substituteArray.push([myAvatar.anArray[n][0], myAvatar.anArray[n][1]]);
+			for (let n = 1; n < myAvatar.vertexPoints.length - 1; n++){
+				myAvatar.substituteArray.push([myAvatar.vertexPoints[n][0], myAvatar.vertexPoints[n][1]]);
 			}
 			
+			//CHECK THIS AGAIN (TEMP)
 			let limit = 0;
 			console.log("myAvatar.substituteArray.length", myAvatar.substituteArray.length);
 			if (myAvatar.substituteArray.length === 4){
 				let limit = myAvatar.substituteArray.length;
 				this.publish("canvasExtrude", "canvasExtrude", limit);
+
 			} else {
 				let limit = myAvatar.substituteArray.length;
 				this.publish("canvasExtrude", "canvasExtrude", limit);
+				
 			}			
-			
-			
-	
-		
 		}
 	}
+	
+    canvasExtrude(limit) {	
+		console.log("canvasExtrude fired");
+		
+		let varSteps = myAvatar.extrusionParameters[0];
+		let varDepth = myAvatar.extrusionParameters[1];
+		
+		var varBevelEnabled;
+		if (myAvatar.extrusionParameters[2]){ //check if false
+			console.log(myAvatar.extrusionParameters[2]);
+			let varBevelEnabled = 1;
+		}
+		
+		let varBevelThickness = myAvatar.extrusionParameters[3];
+		let varBevelSize = myAvatar.extrusionParameters[4];
+		let varBevelOffset = myAvatar.extrusionParameters[5];
+		let varBevelSegments = myAvatar.extrusionParameters[6];
+		
+		let extrudeSettings = {
+			steps: varSteps, //3
+			depth: varDepth, //1
+			bevelEnabled: varBevelEnabled, //false
+			bevelThickness: varBevelThickness,//0
+			bevelSize: varBevelSize,//0
+			bevelOffset: varBevelOffset,//0
+			bevelSegments: varBevelSegments//0
+		};
+		
+		for(let i = 0; i < myAvatar.vector3Points.length * 2; i++){ 
+			scene.remove(scene.children[scene.children.length - 1]); 
+		}
+		
+		let dataArray1 = [... myAvatar.substituteArray];
+		let dataArray2 = Object.assign({}, extrudeSettings);
+		
+		console.log("1 publishing to cardCreator");
+		
+		this.createCard({
+			name:"userShape",
+			type: "object",
+			translation: [2.5, 1, -2.5],
+			layers: ["pointer"],
+			scale: [1, 1, 1],
+			dataPackage1: dataArray1,
+			dataPackage2: dataArray2,		
+			behaviorModules: ["CardCreator"],
+		});
+		
+		console.log("2 card created");
+		
+		myAvatar.vector3Points = [];
+		myAvatar.vertexPoints = [];		
+	}
+		/*
 
+		//perform extrusion using extrudeSettings
+		const geometry1 = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+		const material1 = new THREE.MeshStandardMaterial( {color: 0xcccccc, metalness: 0.8} );
+		const newShape = new THREE.Mesh( geometry1, material1 );
+		
+		//correct the rotation of the object so that it corresponds to the orientation on the canvas
+		newShape.rotation.x = Math.PI;
+		newShape.rotation.y = -Math.PI / 2;
+		newShape.translateX(1);
+		newShape.translateZ(-4);
+		
+
+		
+		this.shape.add(newShape);
+		console.log("with this.shape.add()", shape);
+		
+		//scene.add(newShape);
+		//console.log("with scene.add", newShape);
+		
+		
+		myAvatar.vector3Points = [];
+		myAvatar.vertexPoints = [];
+		//////END	 */
+	
+    		
+
+	calculateData(){
+		let polyVertices = myAvatar.vertexPoints.length - 1;
+
+		const numPoints = myAvatar.vertexPoints.length;
+		let polyArea = 0;
+
+		for (let i = 0; i < numPoints; i++) {
+			const [x1, y1] = myAvatar.vertexPoints[i];
+			const [x2, y2] = myAvatar.vertexPoints[(i + 1) % numPoints];
+
+			polyArea += (x1 * y2 - x2 * y1);
+		}
+
+		polyArea = Math.abs(polyArea) / 2;
+
+		let polyVolume = polyArea * myAvatar.extrusionParameters[1] * 1000;
+
+		
+		console.log("myAvatar.density 1", myAvatar.density);
+		
+		let polyMass = polyVolume * myAvatar.density / 1000;	
+		
+		console.log("myAvatar.density 2", myAvatar.density);
+		console.log("polyMass", polyMass);
+		
+	
+		let data = [polyVertices, polyArea, polyVolume, polyMass]
+		
+		console.log("data", data);
+		
+		this.publish("polyData", "polyData", data);
+	}
 	
 	performAction(data) {
 		console.log("data.action registered");
         
         if (data.action === "Extrusion Steps") {
-            myAvatar.anotherArrayChoice = 0;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 0;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }
         if (data.action === "Extrusion Depth") {
-            myAvatar.anotherArrayChoice = 1;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 1;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }
         if (data.action === "Enable Bevel") {
-            myAvatar.anotherArrayChoice = 2;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 2;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }        
 		if (data.action === "Bevel Thickness") {
-            myAvatar.anotherArrayChoice = 3;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 3;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }       
 		if (data.action === "Bevel Size") {
-            myAvatar.anotherArrayChoice = 4;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 4;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }        
 		if (data.action === "Bevel Offset") {
-            myAvatar.anotherArrayChoice = 5;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 5;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }
 		if (data.action === "Bevel Segments") {
-            myAvatar.anotherArrayChoice = 6;
-			console.log("myAvatar.anotherArrayChoice in select0");
-			console.log(myAvatar.anotherArrayChoice);
+            myAvatar.extrusionParametersChoice = 6;
+			console.log("myAvatar.extrusionParametersChoice in select0");
+			console.log(myAvatar.extrusionParametersChoice);
             return;
         }
     }
@@ -228,51 +353,51 @@ class DrawingCanvasActor {
 	increaseDecrease(data) {
 		console.log("data.action registered 2");
 			if (data.action === "Increase") {
-			let anotherArrayElement = myAvatar.anotherArray[myAvatar.anotherArrayChoice];
+			let anotherArrayElement = myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice];
 			
 			let trueOrFalse = Number.isInteger(anotherArrayElement);
 			console.log(trueOrFalse);
 			if (!trueOrFalse){
 			if (anotherArrayElement == false){
-				myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
+				myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
 			} 
 			if (anotherArrayElement == true){
-				myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
+				myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
 			}
 			} else {
 			anotherArrayElement++;
-			myAvatar.anotherArray[myAvatar.anotherArrayChoice] = anotherArrayElement;
+			myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = anotherArrayElement;
 			}
 			console.log(anotherArrayElement);
 			console.log("Successfully increased");
 			this.publish("myDrawingCanvas", "clear");
-			this.publish("myDrawingCanvas", "increaseDecrease", myAvatar.anotherArrayChoice);
+			this.publish("myDrawingCanvas", "increaseDecrease", myAvatar.extrusionParametersChoice);
             return;
         }
         if (data.action === "Decrease") {
-			let anotherArrayElement = myAvatar.anotherArray[myAvatar.anotherArrayChoice];
+			let anotherArrayElement = myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice];
 			
 			let trueOrFalse = Number.isInteger(anotherArrayElement);
 			console.log(trueOrFalse);
 			if (!trueOrFalse){
 			if (anotherArrayElement == false){
-				myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
+				myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
 			} 
 			if (anotherArrayElement == true){
-				myAvatar.anotherArray[myAvatar.anotherArrayChoice] = !anotherArrayElement;
+				myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
 			}
 			} else {
 			anotherArrayElement--;
-			myAvatar.anotherArray[myAvatar.anotherArrayChoice] = anotherArrayElement;
+			myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = anotherArrayElement;
 			}
 			console.log(anotherArrayElement);
 			console.log("Successfully decreased");
 			this.publish("myDrawingCanvas", "clear");
-			if (myAvatar.anotherArrayChoice === 0){
+			if (myAvatar.extrusionParametersChoice === 0){
 				this.publish("myDrawingCanvas", "increaseDecrease", "NEGATIVEZERO");
 			}
 			else {
-				this.publish("myDrawingCanvas", "increaseDecrease", -Math.abs(myAvatar.anotherArrayChoice));
+				this.publish("myDrawingCanvas", "increaseDecrease", -Math.abs(myAvatar.extrusionParametersChoice));
 			}
             return;
         }
@@ -318,21 +443,7 @@ class DrawingCanvasActor {
         this.say("drawLine", segment);
     }
 
-    clear(_viewId) {
-        // this._get("global").length = 0;
-        // this._get("strokeLists").clear();
-        this._cardData.globalDrawing = [];
-        this._cardData.strokeLists = new Map();
-        this.say("drawAll");
-    }
 
-    clear1(_viewId) {
-        // this._get("global").length = 0;
-        // this._get("strokeLists").clear();
-        this._cardData.globalDrawing = [];
-        this._cardData.strokeLists = new Map();
-        this.say("drawAll1");
-    }
 }
 
 class DrawingCanvasPawn {
@@ -348,45 +459,53 @@ class DrawingCanvasPawn {
 		this.listen("updateShape", "generateText3D");
 		
 		//make this pawn subscribe to message that initiates extrusion function
-		this.subscribe("canvasExtrude", "canvasExtrude", this.canvasExtrude);
+		//this.subscribe("canvasExtrude", "canvasExtrude", this.canvasExtrude);
+		
+		this.subscribe("precisionInput", "precisionInputX", this.setPointPreciseX);
+		this.subscribe("precisionInput", "precisionInputY", this.setPointPreciseY);
+		this.subscribe("precisionInput", "precisionInputSubmit", this.setPointPrecise);
+		
+		this.subscribe("assignMass", "assignMass", this.assignMass);
 		
 		//add interaction listener for setting points
 		
 		this.addEventListener("pointerTap", "setPoint");		
 
-		//define array to store points (vertices)
-		let myAvatar = this.getMyAvatar();
-		myAvatar.anArray = [];
-		
-		myAvatar.points = [];
-
+		//define storage of arrays locally in avatar, and define arrays
 		//hard coded shortcut method of creating a new global array to store variables
-		//these are the default values for the extrusionsettings
-		//to change the value:
-		//Click on text. listen() detects which box was clicked, sends a msg of text with the selected variable name
-		//the function extracts the array element containing the selected variable, then subtracts 1 from it, and pushes the new variable back into the array
+		let myAvatar = this.getMyAvatar();
 		
-		myAvatar.anotherArray = [];
-		myAvatar.anotherArray.push(3);//varSteps
-		myAvatar.anotherArray.push(1);//varDepth
-		myAvatar.anotherArray.push(false);//varBevelEnabled
-		myAvatar.anotherArray.push(0);//varBevelThickness
-		myAvatar.anotherArray.push(0);//varBevelSize
-		myAvatar.anotherArray.push(0);//varBevelOffset
-		myAvatar.anotherArray.push(0);//varBevelSegments				
+		myAvatar.density = 0;
+		
+		//define array to store vertices on the canvas, then used to generate the 3D object
+		//this array is a nested array. The points are defined as "x" and "y" floats, stored in a small array, stored in vertexPoints 
+		myAvatar.vertexPoints = [];
+		
+		//define array to store ThreeJS Vector3 points, used to draw lines on canvas
+		myAvatar.vector3Points = [];
+		
+		//array to store X and Y coordinates for drawing by using precise text input
+		myAvatar.storeArrayX = [];
+		myAvatar.storeArrayY = [];
 
-		//this.makeButton();
-		//this.addEventListener("pointerTap", "setColor");
+		//array to store extrusion parameter settings
+		myAvatar.extrusionParameters = [];
+		
+		//these are the default values for the extrusion settings, mapped to each extrusion parameter
+		myAvatar.extrusionParameters.push(3);//varSteps
+		myAvatar.extrusionParameters.push(1);//varDepth
+		myAvatar.extrusionParameters.push(false);//varBevelEnabled
+		myAvatar.extrusionParameters.push(0);//varBevelThickness
+		myAvatar.extrusionParameters.push(0);//varBevelSize
+		myAvatar.extrusionParameters.push(0);//varBevelOffset
+		myAvatar.extrusionParameters.push(0);//varBevelSegments				
 
 		//randomize pen colour when initiated (including when canvas is reset)
         this.color = this.randomColor();
         this.nib = 8; //pen nib diameter
         this.addEventListener("pointerDown", "pointerDown");
 
-		let canvas = this.canvas;
-        let ctx = canvas.getContext('2d');
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+		this.drawCanvas();
 
         this.drawAll();
         console.log("DrawingCanvasPawn.setup");
@@ -395,6 +514,41 @@ class DrawingCanvasPawn {
     resize(width, height) {
         console.log(width, height);
     }
+	
+	assignMass(density){
+		myAvatar.density = density;
+		console.log("myAvatar.density", myAvatar.density);
+	}
+	
+	drawCanvas(){
+		let canvas = this.canvas;
+        let ctx = canvas.getContext('2d');
+        //ctx.fillStyle = "white";
+	
+		const numSquares = 20;
+		const squareSize = canvas.width / numSquares;
+		const borderWidth = 1;
+
+		// Loop through each square and draw the borders
+		for (let row = 0; row < numSquares; row++) {
+		  for (let col = 0; col < numSquares; col++) {
+			const x = col * squareSize;
+			const y = row * squareSize;
+
+			// Draw the white tile
+			ctx.fillStyle = 'white';
+			ctx.fillRect(x, y, squareSize, squareSize);
+
+			// Draw the black borders
+			ctx.fillStyle = 'black';
+			ctx.fillRect(x, y, squareSize, borderWidth); // Top border
+			ctx.fillRect(x, y, borderWidth, squareSize); // Left border
+			ctx.fillRect(x + squareSize - borderWidth, y, borderWidth, squareSize); // Right border
+			ctx.fillRect(x, y + squareSize - borderWidth, squareSize, borderWidth); // Bottom border
+		  }
+		}		
+		
+	}
 	
 	
 	//WORKING
@@ -405,14 +559,15 @@ class DrawingCanvasPawn {
 		//define offsetx/y as being x/y coordinate of mouse at the moment the pointerTap event was logged
         let offsetX = evt.x;
         let offsetY = evt.y;
-		myAvatar.anArray.push([offsetX, offsetY]);
+		myAvatar.vertexPoints.push([offsetX, offsetY]);
 		
-		myAvatar.points.push( new THREE.Vector3( (offsetX * 0.001) - 0.5, 2.97, (offsetY * 0.001) - 0.5 ) );
+		//-0.5 is needed for proper alignment. Same is used in cookEvent(evt)
+		myAvatar.vector3Points.push( new THREE.Vector3( (offsetX * 0.001) - 0.5, 2.974, (offsetY * 0.001) - 0.5 ) );
 		
-		if (myAvatar.points.length > 1){
+		if (myAvatar.vector3Points.length > 1){
 			
 			const material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
-			const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.points );
+			const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.vector3Points );
 			const line = new THREE.Line( geometry, material );
 			line.rotation.z = -Math.PI / 2;
 			line.rotation.x = Math.PI / 2;
@@ -420,7 +575,35 @@ class DrawingCanvasPawn {
 			scene.add( line );
 		}
 		
-		console.log("myAvatar.anArray in setPoint(evt): ", myAvatar.anArray);
+		return;
+	}
+
+	setPointPreciseX(data){	
+		myAvatar.storeArrayX.push(data);
+	}		
+	
+	setPointPreciseY(data){	
+		myAvatar.storeArrayY.push(data);
+	}	
+	
+	setPointPrecise(){	
+	
+		let offsetX = myAvatar.storeArrayX[myAvatar.storeArrayX.length - 1];
+		let offsetY = myAvatar.storeArrayY[myAvatar.storeArrayY.length - 1];
+		myAvatar.vertexPoints.push([offsetX, offsetY]);
+		
+		myAvatar.vector3Points.push( new THREE.Vector3( (offsetX * 0.001) - 0.5, 2.97, (offsetY * 0.001) - 0.5 ) );
+		
+		if (myAvatar.vector3Points.length > 1){
+			
+			const material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
+			const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.vector3Points );
+			const line = new THREE.Line( geometry, material );
+			line.rotation.z = -Math.PI / 2;
+			line.rotation.x = Math.PI / 2;
+			
+			scene.add( line );
+		}
 		
 		return;
 	}	
@@ -444,91 +627,9 @@ class DrawingCanvasPawn {
         this.nib = nib;
     }
 	
-	
-	
-    canvasExtrude(limit) {	
-		console.log("myAvatar.substituteArray: ", myAvatar.substituteArray);
-		// Shape for extrusion
-		const shape = new THREE.Shape();
-
-		// Move or set the .currentPoint to moveTo(x, y)
-		shape.moveTo(myAvatar.substituteArray[0][0] * 0.001, myAvatar.substituteArray[0][1] * 0.001);
-		
-		//loop to iterate through array to call shape.lineTo to connect last vertex to current vertex
-		for (let n = 1; n < limit; n++) {
-			const vertX = myAvatar.substituteArray[n][0] * 0.001;
-			const vertY = myAvatar.substituteArray[n][1] * 0.001;
-			
-			shape.lineTo(vertX, vertY);
-		}
-		
-		shape.lineTo(myAvatar.substituteArray[0][0] * 0.001, myAvatar.substituteArray[0][1] * 0.001);
-
-		//ExtrudeGeometry
-		
-		console.log("anotherArray");
-		console.log(myAvatar.anotherArray);
-		
-		let varSteps = myAvatar.anotherArray[0];
-		let varDepth = myAvatar.anotherArray[1];
-		
-		var varBevelEnabled;
-		if (myAvatar.anotherArray[2]){ //check if false
-			console.log(myAvatar.anotherArray[2]);
-			let varBevelEnabled = 1;
-		}
-		
-		let varBevelThickness = myAvatar.anotherArray[3];
-		let varBevelSize = myAvatar.anotherArray[4];
-		let varBevelOffset = myAvatar.anotherArray[5];
-		let varBevelSegments = myAvatar.anotherArray[6];
-		
-		let extrudeSettings = {
-			steps: varSteps, //3
-			depth: varDepth, //1
-			bevelEnabled: varBevelEnabled, //false
-			bevelThickness: varBevelThickness,//0
-			bevelSize: varBevelSize,//0
-			bevelOffset: varBevelOffset,//0
-			bevelSegments: varBevelSegments//0
-		};
-
-		//perform extrusion using extrudeSettings
-		const geometry1 = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-		const material1 = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-		const newShape = new THREE.Mesh( geometry1, material1 ) ;
-		
-		//correct the rotation of the object so that it corresponds to the orientation on the canvas
-		newShape.rotation.x = Math.PI;
-		newShape.rotation.y = -Math.PI / 2;
-		newShape.translateX(1);
-		newShape.translateZ(-4);
-		
-		for(let i = 0; i < myAvatar.points.length; i++){ 
-			scene.remove(scene.children[scene.children.length - 1]); 
-		}
-		
-		scene.add(newShape);
-		console.log(newShape);
-		
-		myAvatar.points = [];
-		myAvatar.anArray = [];
-		
-		console.log(myAvatar.anArray);
-		//////END	
-
-		console.log(myAvatar.points);
-		
-        console.log("CLEAR")
-        let canvas = this.canvas;
-        let ctx = canvas.getContext('2d');
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        this.texture.needsUpdate = true;
-    }	
 
     clear1() {	
-		//clear1 is the button on the LEFT. It generates CURVED shapes
+/* 		//clear1 is the button on the LEFT. It generates CURVED shapes
 		console.log("this is clear1");
 		//////START
 		const shape = new THREE.Shape();
@@ -540,35 +641,34 @@ class DrawingCanvasPawn {
 
 		let n = 2; 
 
-		while (n < myAvatar.anArray.length) { //n is for array
-				let vert1X = myAvatar.anArray[n-2][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
-				let vert1Y = myAvatar.anArray[n-2][1] * 0.001;
+		while (n < myAvatar.vertexPoints.length) { //n is for array
+				let vert1X = myAvatar.vertexPoints[n-2][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
+				let vert1Y = myAvatar.vertexPoints[n-2][1] * 0.001;
 
-				let vert2X = myAvatar.anArray[n-1][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
-				let vert2Y = myAvatar.anArray[n-1][1] * 0.001;	
+				let vert2X = myAvatar.vertexPoints[n-1][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
+				let vert2Y = myAvatar.vertexPoints[n-1][1] * 0.001;	
 
-				let vertX = myAvatar.anArray[n][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
-				let vertY = myAvatar.anArray[n][1] * 0.001;			
+				let vertX = myAvatar.vertexPoints[n][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
+				let vertY = myAvatar.vertexPoints[n][1] * 0.001;			
 			
-			//.quadraticCurveTo ( cpX : Float, cpY : Float, x : Float, y : Float )
 			shape.bezierCurveTo( vert1X, vert1Y, vert2X, vert2Y, vertX, vertY );
 			n++;
 			n++;
 			n++;
 		}
-		let varSteps = myAvatar.anotherArray[0];
-		let varDepth = myAvatar.anotherArray[1];
+		let varSteps = myAvatar.extrusionParameters[0];
+		let varDepth = myAvatar.extrusionParameters[1];
 		
 		var varBevelEnabled;
-		if (myAvatar.anotherArray[2]){ //check if false
-			console.log(myAvatar.anotherArray[2]);
+		if (myAvatar.extrusionParameters[2]){ //check if false
+			console.log(myAvatar.extrusionParameters[2]);
 			let varBevelEnabled = 1;
 		}
 		
-		let varBevelThickness = myAvatar.anotherArray[3];
-		let varBevelSize = myAvatar.anotherArray[4];
-		let varBevelOffset = myAvatar.anotherArray[5];
-		let varBevelSegments = myAvatar.anotherArray[6];
+		let varBevelThickness = myAvatar.extrusionParameters[3];
+		let varBevelSize = myAvatar.extrusionParameters[4];
+		let varBevelOffset = myAvatar.extrusionParameters[5];
+		let varBevelSegments = myAvatar.extrusionParameters[6];
 		
 		let extrudeSettings = {
 			steps: varSteps, //3
@@ -585,8 +685,9 @@ class DrawingCanvasPawn {
 		const newShape = new THREE.Mesh( geometry1, material1 ) ;
 		shape.add(newShape);
 		
-		myAvatar.anArray = [];
-		console.log(myAvatar.anArray);
+		
+		myAvatar.vertexPoints = [];
+		console.log(myAvatar.vertexPoints);
 		//////END			
 		
         console.log("CLEAR1");
@@ -594,7 +695,7 @@ class DrawingCanvasPawn {
         let ctx = canvas.getContext('2d');
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        this.texture.needsUpdate = true;
+        this.texture.needsUpdate = true; */
     }
 	
 
@@ -602,7 +703,7 @@ class DrawingCanvasPawn {
         let global = this.actor._cardData.globalDrawing;
         if (!global) {return;}
 		//this line calls the clear() method
-        this.clear();
+        //this.clear();
         this.drawStrokes(global);
     }
 	
@@ -700,7 +801,6 @@ class DrawingCanvasPawn {
     pointerUp(evt) {
         if (!this.lastPoint) {return;}
         if (this.disabled) {return;}
-        console.log("pointerUp");
 
         let cooked = this.cookEvent(evt);
         let p = this.transformPoint(cooked.x, cooked.y);
@@ -718,25 +818,26 @@ class DrawingCanvasPawn {
     }
 
     cookEvent(evt) {
+		//This code creates a new instance of Microverse.THREE.Vector3 using the values from evt.xyz
+		//then it clones the matrixWorld property of this.renderObject and then inverts the cloned matrix. 
         if (!evt.xyz) {return;}
-        let vec = new Microverse.THREE.Vector3(...evt.xyz);
-        let inv = this.renderObject.matrixWorld.clone().invert();
-        let vec2 = vec.applyMatrix4(inv);
 
+        let vec = new Microverse.THREE.Vector3(...evt.xyz);
+		
+		//The resulting inverted matrix is stored in the inv variable.
+        let inv = this.renderObject.matrixWorld.clone().invert();
+		
+		//It applies the inverted matrix (inv) to the vec vector using the applyMatrix4 method, resulting in a new transformed vector vec2.
+		//applying the inverse matrix brings it into the local coordinate system of the object
+        let vec2 = vec.applyMatrix4(inv);
+		
+		//It calculates the x and y coordinates for the texture mapping based on the transformed vector vec2
         let x = (vec2.x + 0.5) * this.actor._cardData.textureWidth;
         let y = (-vec2.y + 0.5) * this.actor._cardData.textureHeight;
 
         console.log("x, y:", x, y);
 
         return {x, y};
-
-        /*
-        let width = this.plane.geometry.parameters.width;
-        let height = this.plane.geometry.parameters.height;
-        let x = ((width / 2) + vec2.x) / this.textScale();
-        let y = ((height / 2) - vec2.y + this.getScrollTop(height)) / this.textScale();
-        return {x, y};
-        */
     }
 
     transformPoint(x, y) {
@@ -760,6 +861,8 @@ class DrawingCanvasPawn {
     }
 }
 
+
+
 class ButtonActor {
 	//Actors are the model part of the M-V-C system
 	//ButtonActor serves to detect a user click/touch/hold event on the button
@@ -770,20 +873,19 @@ class ButtonActor {
 
     doit() {
 		console.log("this is anArray");	
-		console.log(myAvatar.anArray);
+		console.log(myAvatar.vertexPoints);
 		
 		console.log("this is anotherArray");	
-		console.log(myAvatar.anotherArray);		
+		console.log(myAvatar.extrusionParameters);		
 		
 		console.log("this is anotherArrayChoice before select0");	
-		console.log(myAvatar.anotherArrayChoice);
+		console.log(myAvatar.extrusionParametersChoice);
 		
         this.publish(this._cardData.publishTo, this._cardData.publishMsg)
         //console.log("doit");
     }
 
-    teardown() {
-    }
+
 }
 
 class ButtonPawn {
@@ -930,6 +1032,7 @@ class clickToGenerate {
 
     doAction3(data) {
         this.publish(this.id, "doAction3", data);
+		this.publish("calculateData", "calculateData");
     }
 
     itemsUpdated() {
@@ -942,6 +1045,7 @@ class smallDisplayPawn {
         this.initialDisplay();
 		this.subscribe("myDrawingCanvas", "clear", this.clear);
 		this.subscribe("myDrawingCanvas", "increaseDecrease", this.displayElement);
+		
         //this.publish(this.id, "electionStatusRequested");
 		
 		let myAvatar = this.getMyAvatar();
@@ -1023,7 +1127,7 @@ class smallDisplayPawn {
 			this.publish(this.id, "setColor", color);
 		}
     }	
-
+	
     clear() {
 		console.log("Clear method triggered");	
         let ctx = this.canvas.getContext("2d");
@@ -1032,18 +1136,94 @@ class smallDisplayPawn {
 		this.texture.needsUpdate = true;
 		
 		return;
-    }
-
-    teardown() {
-       
-    }
+    }	
 }
+
+class polyDataDisplayPawn{
+	setup(){
+		this.subscribe("polyData", "polyData", this.displayData);
+		//Sets the labels
+        let color = "#FFFFFF";
+        let ctx = this.canvas.getContext("2d");
+        ctx.textAlign = "left";
+        ctx.fillStyle = color;
+        ctx.font = "100px Arial";		
+
+		ctx.fillText("Vertices: ", 40, 140);
+		ctx.fillText("Area: ", 40, 320);		
+		ctx.fillText("Volume: ", 40, 500);	
+		ctx.fillText("Mass: ", 40, 680);
+		
+		this.texture.needsUpdate = true;
+        this.publish(this.id, "setColor", color);	
+	}
+
+	displayData(data){
+        let color = "#FFFFFF";
+        let ctx = this.canvas.getContext("2d");
+        ctx.textAlign = "left";
+        ctx.fillStyle = color;
+        ctx.font = "100px Arial";	
+
+		let polyArea = data[1].toFixed(2);
+		let polyVolume = data[2].toFixed(2);
+		let polyMass = data[3].toFixed(2);
+	
+		let msgVertices = String(data[0]);
+		let msgArea = String(polyArea);
+		let msgVolume = String(polyVolume);
+	
+		//Sets the data to the right of the labels
+		ctx.fillText(msgVertices, 540, 140);
+		ctx.fillText(msgArea + " mm²", 540, 320);		
+		ctx.fillText(msgVolume + " mm³", 540, 500);
+		ctx.fillText(polyMass + " g", 540, 680);
+		
+		
+		this.texture.needsUpdate = true;
+        this.publish(this.id, "setColor", color);		
+	}	
+	
+}
+	
+	
 
 class precisionInputActor {
 	setup(){
-		this.subscribe(this.id, "text", this.handleText);
-
+		//event "changed" comes from TextFieldActor in text card. It is not published in this behaviour file 
+		this.subscribe(this.id, "changed", this.init);
 	}
+	
+	init() {
+		//handles value from each text box separately, publishes to separate methods which store the value in separate arrays
+		//hack method that uses myAvatar
+		console.log("triggered init()");
+		
+		let	x = 0;
+		let y = 0;
+		
+		if (this.name === "coordinate text bar") {
+			
+		  // work on data from upper text field (x-coordinate)
+		  let x = this.value;
+		  this.publish("precisionInput", "precisionInputX", x);
+		  
+		} else if (this.name === "coordinate text bar 2") {
+			
+		  // work on data from upper text field (y-coordinate)
+		  let y = this.value;
+		  this.publish("precisionInput", "precisionInputY", y);
+		  
+		} else if (this.name === "density text bar") {
+			
+		  let density = this.value;
+		  console.log("density in init()", density);
+		  this.publish("assignMass", "assignMass", density);
+		  
+		} 
+		
+	}	
+	
     show() {
         if (this.menu1) {
             this.menu1.destroy();
@@ -1060,35 +1240,79 @@ class precisionInputActor {
 			translation: [0, 0, 0.02]
         });
 
-        this.subscribe(this.menu1.id, "itemsUpdated", "itemsUpdated");
+        //this.subscribe(this.menu1.id, "itemsUpdated", "itemsUpdated");
         this.updateSelections4();
 
         this.listen("fire", "doAction4");
     }
 
     updateSelections4() {
-        console.log("action updateSelections4");
         let items = [
             {label: "Submit"}
         ];
 
         this.menu1.call("Menu$MenuActor", "setItems", items);
     }
-
-    doAction4() {
-		const plainText = this.value;
-		console.log("this.value is: ", plainText);
-		console.log("this.content is: ", this.content);
-	}
 	
-	handleText(){
-		console.log("handleText Triggered");
+	
+	//action method
+    doAction4() { //handles y-coordinate
+		this.publish("precisionInput", "precisionInputSubmit");
+		
 	}
 
-    itemsUpdated() {
+	
+    /* itemsUpdated() {
         this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }
+    }	 */
+
 }
+
+/* class CardCreatorActor {
+    setup() {
+
+    }
+} */
+
+class CardCreatorPawn {
+	setup(){	
+		console.log("cardCreate has fired");
+		console.log("this.id", this.id);
+		console.log("this.actor.id", this.actor.id);
+		
+		console.log("this.service PawnManager", this.service("PawnManager"));
+		console.log("this.service ThreeRenderManager", this.service("ThreeRenderManager"));
+	
+		let pointsArray = this.actor._cardData.dataPackage1; 
+		let extrudeSettings = this.actor._cardData.dataPackage2;
+		
+		// Shape for extrusion
+		const shape = new THREE.Shape();
+
+		// Move or set the .currentPoint to moveTo(x, y)
+		shape.moveTo(pointsArray[0][0] * 0.001, pointsArray[0][1] * 0.001);
+		
+		//loop to iterate through array to call shape.lineTo to connect last vertex to current vertex
+		for (let n = 1; n < pointsArray.length; n++) {
+			const vertX = pointsArray[n][0] * 0.001;
+			const vertY = pointsArray[n][1] * 0.001;
+			
+			shape.lineTo(vertX, vertY);
+		}
+		
+		shape.lineTo(pointsArray[0][0] * 0.001, pointsArray[0][1] * 0.001);	
+	
+		const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+		const material = new THREE.MeshStandardMaterial( {color: 0xcccccc, metalness: 0.8} );
+		const newShape = new THREE.Mesh( geometry, material );
+		
+		newShape.rotation.x = Math.PI;
+		newShape.rotation.y = -Math.PI / 2;
+
+		this.shape.add(newShape);
+	}
+}
+
 
 export default {
     modules: [
@@ -1118,12 +1342,19 @@ export default {
 		{
             name: "smallDisplay",
             pawnBehaviors: [smallDisplayPawn]
+        },		
+		{
+            name: "polyDataDisplay",
+            pawnBehaviors: [polyDataDisplayPawn]
         },
 		{
             name: "precisionInput",
 			actorBehaviors: [precisionInputActor]
-            
-        }
+        },	
+		{
+            name: "CardCreator",
+			pawnBehaviors: [CardCreatorPawn]
+        }	
     ]
 };
 
