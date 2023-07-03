@@ -27,28 +27,68 @@ export function init(Constants) {
             }
         },
 		
-
         {
             card: {
-                name: "text editor 1",
+                name: "density text bar",
                 className: "TextFieldActor",
-                translation: [2.9, 0.36, 1.16],
+                translation: [2.9, 0.6, -1],
                 rotation: [0, -Math.PI / 2, 0],
-                depth: 0.0,
+                depth: 0.01,
                 type: "text",
-                runs: [{text: "13"}],
+                runs: [{text: "0"}],
                 margins: {left: 20, top: 20, right: 20, bottom: 20},
                 backgroundColor: 0xffffff,
                 color: 0x000000,
-                //color: 0xf4e056,
                 frameColor: frameColor,
-                width: 0.5,
+                width: 0.77,
                 height: 0.15,
                 textScale: 0.002,
                 shadow: true,
 				behaviorModules: ["precisionInput"],
             }
-        },		
+        },	
+		
+        {
+            card: {
+                name: "coordinate text bar",
+                className: "TextFieldActor",
+                translation: [2.9, 0.52, 1.3],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.01,
+                type: "text",
+                runs: [{text: "X"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                frameColor: frameColor,
+                width: 0.77,
+                height: 0.15,
+                textScale: 0.002,
+                shadow: true,
+				behaviorModules: ["precisionInput"],
+            }
+        },	
+
+        {
+            card: {
+                name: "coordinate text bar 2",
+                className: "TextFieldActor",
+                translation: [2.9, 0.36, 1.3],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.01,
+                type: "text",
+                runs: [{text: "Y"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                frameColor: frameColor,
+                width: 0.77,
+                height: 0.15,
+                textScale: 0.002,
+                shadow: true,
+				behaviorModules: ["precisionInput"],
+            }
+        },			
 		
         {
             card: {
@@ -76,7 +116,25 @@ export function init(Constants) {
             }
         },
 
-
+		{		
+		card: {
+                name: "3d object parameter display",
+                translation: [2.9, 0.4, -1],
+                rotation: [0, -Math.PI / 2, 0],
+                scale: [0.5, 0.5, 0.5],
+                type: "2d",
+                textureType: "canvas",
+                textureWidth: 1600,
+                textureHeight: 800,
+                width: 4,
+                height: 2,
+                frameColor: frameColor,
+                // color: 0xffffff,
+                
+                behaviorModules: ["polyDataDisplay"],
+            }
+			
+		},
 
 		{		
 		card: {
@@ -98,7 +156,24 @@ export function init(Constants) {
 			
 		},
 
-
+        {
+            card: {
+		        name: "canvas axis label underlay",
+				translation: [3, 0, 0],
+				rotation: [0, -Math.PI / 2, 0],
+				type: "2d",
+				width: 1,
+				height: 1,
+				scale: [1.2, 1.2, 0.5],
+                textureType: "image",
+                textureLocation: "./assets/images/underlay.png",
+                color: 0xcccccc,
+                fullBright: true,
+                cornerRadius: 0.05,
+                depth: 0.05,
+                shadow: true,
+            }
+        },	
 
 		{
             card: {
