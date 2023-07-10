@@ -3,9 +3,18 @@ class DrawingCanvasActor {
 		const drawingCanvas = new DrawingCanvasActor();
 		drawingCanvas.name = "myDrawingCanvas";		
 		
+		this.userShapes = [];
+		this.vertexList = [];
+		this.lineList = [];
+		
+		//vertexList and lineList are responsible for storing the vertex and line data used to form the shape of the user-made card
+		
+		//this is responsible for adding vertices on the canvas
 		this.addEventListener("pointerDown", "pointerDown");
-		this.addEventListener("pointerEnter", "hilite");
-		this.addEventListener("pointerLeave", "unhilite");
+		
+		this.subscribe("drawNewLine", "drawNewLine", this.drawNewLine);
+		
+		this.subscribe("newLine", "newLine", this.vertexLine);
 		
         this.subscribe(this.sessionId, "view-exit", "viewExit");
         this.listen("startLine", "startLine");
@@ -14,6 +23,15 @@ class DrawingCanvasActor {
 		this.subscribe("canvasExtrude", "canvasExtrude", this.canvasExtrude);
 		
 		this.subscribe("calculateData", "calculateData", this.calculateData);
+		
+		this.subscribe("assignMaterial", "assignMaterial", this.assignMaterial);
+		this.subscribe("assignDensity", "assignDensity", this.assignDensity);	
+
+		this.density = 0;
+		
+		this.userDensity = 0;
+		this.userMaterial = "empty";
+		this.metalnessValue = 0.1;
 		
 		//FROM PROPERTY SHEET
 		if (this.windows) {
@@ -34,7 +52,7 @@ class DrawingCanvasActor {
         }
 
 		
-		this.unemMenu = this.createCard({
+		this.SelectExtrusionParameter = this.createCard({
             name: 'label action menu',
             behaviorModules: ["Menu"],
             translation: [2.9, 0, 1.4],
@@ -48,10 +66,10 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.unemMenu.call("unemMenu$unemMenuActor", "show");
-		this.subscribe(this.unemMenu.id, "doAction", "performAction");
+		this.SelectExtrusionParameter.call("SelectExtrusionParameter$SelectExtrusionParameterActor", "show");
+		this.subscribe(this.SelectExtrusionParameter.id, "doAction", "selectParameter");
 		
-		this.unemMenu2 = this.createCard({
+		this.ExtrusionParametersControl = this.createCard({
             name: 'label action menu 2',
             behaviorModules: ["Menu"],
             translation: [2.9, 0, 2],
@@ -65,11 +83,45 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.unemMenu2.call("unemMenu2$unemMenuActor2", "show");
-		this.subscribe(this.unemMenu2.id, "doAction2", "increaseDecrease");		
+		this.ExtrusionParametersControl.call("ExtrusionParametersControl$ExtrusionParametersControlActor", "show");
+		this.subscribe(this.ExtrusionParametersControl.id, "doAction2", "increaseDecrease");		
+		
+		this.MaterialPresetsMenu = this.createCard({
+            name: 'label action menu 3',
+            behaviorModules: ["Menu"],
+            translation: [2.9, 0, -1],
+			rotation: [0, -Math.PI / 2, 0],
+            width: 0.4,
+            height: 0.35,
+            type: "2d",
+            noSave: true,
+			color: 0xcccccc,
+			fullBright: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+        });
+		this.MaterialPresetsMenu.call("MaterialPresetsMenu$MaterialPresetsActor", "show");
+		this.subscribe(this.MaterialPresetsMenu.id, "doAction3", "setMaterial");			
+		
+		this.NewMaterialsMenu = this.createCard({
+            name: 'label action menu 4',
+            behaviorModules: ["Menu"],
+            translation: [2.9, 0, -1.3],
+			rotation: [0, -Math.PI / 2, 0],
+            width: 0.4,
+            height: 0.35,
+            type: "2d",
+            noSave: true,
+			color: 0xcccccc,
+			fullBright: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+        });
+		this.NewMaterialsMenu.call("NewMaterialsMenu$NewMaterialsActor", "show");
+		this.subscribe(this.NewMaterialsMenu.id, "doAction", "setNewMaterial");			
 		
 		this.clickToGenerate = this.createCard({
-            name: 'label action menu 3',
+            name: 'label action menu 4',
             behaviorModules: ["Menu"],
             translation: [3, 0.8, 0],
 			rotation: [0, -Math.PI / 2, 0],
@@ -82,16 +134,16 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.clickToGenerate.call("clickToGenerate$clickToGenerate", "show");
-		this.subscribe(this.clickToGenerate.id, "doAction3", "checkIntersection");				
+		this.clickToGenerate.call("clickToGenerate$clickToGenerateActor", "show");
+		this.subscribe(this.clickToGenerate.id, "doAction", "checkIntersection");				
 
 		this.precisionInput = this.createCard({
             name: 'precisionInput',
             behaviorModules: ["Menu"],
-            translation: [2.9, 0.4, 2],
+            translation: [2.9, 0.4, 2.1],
 			rotation: [0, -Math.PI / 2, 0],
-            width: 0.35,
-            height: 0.2,
+            width: 0.3,
+            height: 0.15,
             type: "2d",
             noSave: true,
 			color: 0xcccccc,
@@ -107,57 +159,87 @@ class DrawingCanvasActor {
     }
 //end setup()
 
-    setColor() { // Changes colour to green when button is pressed
-		console.log("setColor() triggered");
-    }
-
-    hilite() {
-        this.entered = true;
-        this.setColor();
-    }
-
-    unhilite() {
-        this.entered = false;
-        this.setColor();
-    }
-
     pointerDown(evt) {
 		console.log("in actor evt", evt);
 		
-		let vec3 = new Microverse.THREE.Vector3(...evt.xyz);
+		//assign card with its own vertexList index number
+		let index =  this.vertexList.length;
+		console.log("vertex index", index);
 		
-        let geometry = new Microverse.THREE.SphereGeometry(0.015, 16, 16);
-        let material = new Microverse.THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-        let vertexMarker = new Microverse.THREE.Mesh(geometry, material);
-		vertexMarker.position.x = vec3.x;
-		vertexMarker.position.y = vec3.y;
-		vertexMarker.position.z = vec3.z;
-
-		scene.add(vertexMarker);
-		this.setColor();		
-        
+		let vertex = this.createCard({
+			name:"vertex marker",
+			type: "object",
+			layers: ["pointer"],
+			cardHilite: 0xffffff,
+            behaviorModules: ["Vertex Marker", "URLLink"],
+			vec3Position: evt,
+			vertexIndex: index,
+		});		
+		
+		//create visual vertex marker, not the vertex used to form the shape of the user card
+		this.vertexList.push(vertex);
+		
+		//triggers the vertexLine method
+		this.publish("newLine", "newLine");
+		this.publish("vertexLocation", "vertexLocation", evt);
+		
+		console.log("published newLine in pointerdown");
     }
+	
+	vertexLine(){
+		//if there is more than one vertex, a line will be drawn between the previous and latest vertex
+		if (this.vertexList.length > 0) {
+			
+			let line = this.createCard({
+				name:"vertex line",
+				type: "object",
+				layers: ["pointer"],
+				behaviorModules: ["Draw Line"],
+			});			
+			
+			this.lineList.push( line );
+		}
+	}
+
+	drawNewLine(){
+		console.log("lines", this.lineList);
+		
+		this.lineList.forEach((c) => c.destroy());
+		
+		console.log("lines after destruction", this.lineList);
+		
+		console.log("myAvatar.vector3Points in drawnewline", myAvatar.vector3Points);
+		
+		//triggers the vertexLine(evt) method
+		this.publish("newLine", "newLine");
+		
+		//triggers DrawLinePawn to generate view of line in the world space 
+		this.publish("drawLine", "drawLine");	
+	}
 
 	checkIntersection(data) {
 		console.log("checkIntersection function triggered");
 		if (data.action === "Extrude Polygon") {
-			
+			console.log("in checkIntersection, myAvatar.vertexPoints", myAvatar.vertexPoints);
 
 			let startPoint2 = myAvatar.vertexPoints.length - 2;
 			let endPoint2 = myAvatar.vertexPoints.length - 1;
 			
-
-		
+			//this calculates the intersection based on the start and end points of the first and last lines
+			
+			//this are the hardcoded start and end points of the first line
 			const startPoint1X = myAvatar.vertexPoints[0][0];
 			const startPoint1Y = myAvatar.vertexPoints[0][1];
 			const endPoint1X = myAvatar.vertexPoints[1][0];
 			const endPoint1Y = myAvatar.vertexPoints[1][1];
 			
+			//this are the hardcoded start and end points of the last line
 			const startPoint2X = myAvatar.vertexPoints[startPoint2][0];
 			const startPoint2Y = myAvatar.vertexPoints[startPoint2][1];
 			const endPoint2X = myAvatar.vertexPoints[endPoint2][0];
 			const endPoint2Y = myAvatar.vertexPoints[endPoint2][1];
 
+			//this calculates whether the first and last lines intersect
 			const m1 = (endPoint1Y - startPoint1Y) / (endPoint1X - startPoint1X);
 			const c1 = startPoint1Y - m1 * startPoint1X;
 
@@ -167,6 +249,8 @@ class DrawingCanvasActor {
 			const x = (c2 - c1) / (m1 - m2);
 			const y = m1 * x + c1;
 			
+			//add if statement to handle shapes that don't have a closed loop by automatically closing the loop
+			//work on it!
 			
 			myAvatar.substituteArray = [];
 			myAvatar.substituteArray.push([x, y]);
@@ -217,82 +301,78 @@ class DrawingCanvasActor {
 			bevelSegments: varBevelSegments//0
 		};
 		
-		for(let i = 0; i < myAvatar.vector3Points.length * 2; i++){ 
-			scene.remove(scene.children[scene.children.length - 1]); 
-		}
 		
-		let dataArray1 = [... myAvatar.substituteArray];
-		let dataArray2 = Object.assign({}, extrudeSettings);
+		console.log("vertexList before destroy", this.vertexList);
+		console.log("lineList before destroy", this.lineList);
+		this.vertexList.forEach((c) => c.destroy());
+		this.lineList.forEach((c) => c.destroy());
+		
+		let dataBox1 = [... myAvatar.substituteArray];
+		let dataBox2 = Object.assign({}, extrudeSettings);
+		let dataBox3 = this.metalnessValue;
 		
 		console.log("1 publishing to cardCreator");
 		
-		this.createCard({
+		let userShape = this.createCard({
 			name:"userShape",
 			type: "object",
 			translation: [2.5, 1, -2.5],
 			layers: ["pointer"],
 			scale: [1, 1, 1],
-			dataPackage1: dataArray1,
-			dataPackage2: dataArray2,		
+			dataPackage1: dataBox1,
+			dataPackage2: dataBox2,
+			dataPackage3: dataBox3,
+			
 			behaviorModules: ["CardCreator"],
 		});
+        this.userShapes.push(userShape);
+		
+		console.log("cards", this.userShapes);
 		
 		console.log("2 card created");
-		
-		myAvatar.vector3Points = [];
-		myAvatar.vertexPoints = [];		
 	}
-		/*
-
-		//perform extrusion using extrudeSettings
-		const geometry1 = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-		const material1 = new THREE.MeshStandardMaterial( {color: 0xcccccc, metalness: 0.8} );
-		const newShape = new THREE.Mesh( geometry1, material1 );
-		
-		//correct the rotation of the object so that it corresponds to the orientation on the canvas
-		newShape.rotation.x = Math.PI;
-		newShape.rotation.y = -Math.PI / 2;
-		newShape.translateX(1);
-		newShape.translateZ(-4);
-		
-
-		
-		this.shape.add(newShape);
-		console.log("with this.shape.add()", shape);
-		
-		//scene.add(newShape);
-		//console.log("with scene.add", newShape);
-		
-		
-		myAvatar.vector3Points = [];
-		myAvatar.vertexPoints = [];
-		//////END	 */
-	
-    		
 
 	calculateData(){
+		console.log("in calculateData, vertexPoints", myAvatar.vertexPoints);
 		let polyVertices = myAvatar.vertexPoints.length - 1;
 
 		const numPoints = myAvatar.vertexPoints.length;
 		let polyArea = 0;
-
+		
+		//calculate cross-sectional area of the polygonal object (face area of shape on canvas)
 		for (let i = 0; i < numPoints; i++) {
 			const [x1, y1] = myAvatar.vertexPoints[i];
-			const [x2, y2] = myAvatar.vertexPoints[(i + 1) % numPoints];
+			const [x2, y2] = myAvatar.vertexPoints[(i + 1) % numPoints]; 
 
 			polyArea += (x1 * y2 - x2 * y1);
 		}
-
-		polyArea = Math.abs(polyArea) / 2;
-
-		let polyVolume = polyArea * myAvatar.extrusionParameters[1] * 1000;
-
 		
-		console.log("myAvatar.density 1", myAvatar.density);
+		//calculate the area of the extruded sides of the polygonal object
+		const depth = myAvatar.extrusionParameters[1] * 1000; //extrusion depth
+
+		for (let i = 0; i < numPoints - 1; i++) {
+			//get current vertex and next vertex
+			const [x1, y1] = myAvatar.vertexPoints[i];
+			const [x2, y2] = myAvatar.vertexPoints[(i + 1) % numPoints]; 
+			
+			//Euclidean distance formula between the current vertex and the next vertex
+			const sideLength = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+			const sideArea = sideLength * depth;
+			console.log("sidearea", sideArea);
+			polyArea += sideArea;
+			console.log("polyArea when adding sides", polyArea);
+		}		 
+
+		polyArea = Math.abs(polyArea);
+
+		let polyVolume = polyArea * myAvatar.extrusionParameters[1] * 1000; //extrusion depth
+
+		console.log("this.density 1", this.density);
 		
-		let polyMass = polyVolume * myAvatar.density / 1000;	
+		let polyMass = polyVolume * (this.density / 1000000);	
 		
-		console.log("myAvatar.density 2", myAvatar.density);
+		console.log("this.density 2", this.density);
+		
 		console.log("polyMass", polyMass);
 		
 	
@@ -301,9 +381,12 @@ class DrawingCanvasActor {
 		console.log("data", data);
 		
 		this.publish("polyData", "polyData", data);
+		myAvatar.vector3Points = [];
+		myAvatar.vertexPoints = [];				
+		
 	}
 	
-	performAction(data) {
+	selectParameter(data) {
 		console.log("data.action registered");
         
         if (data.action === "Extrusion Steps") {
@@ -402,6 +485,65 @@ class DrawingCanvasActor {
             return;
         }
     }	
+	
+	assignMaterial(data){
+		console.log("userMaterial data", data);
+		this.userMaterial = data;
+		console.log("this.userMaterial", this.userMaterial);		
+	}
+	
+	assignDensity(data){
+		this.userDensity = data;
+		console.log("this.userDensity", this.userDensity);
+	}	
+	
+	setNewMaterial(data){
+		//
+		this.material = this.userMaterial
+		
+		//this is the only variable relevant to the polyData calculation, everything else is cosmetic
+		this.density = this.userDensity;
+		
+		//metalness
+		//colour
+		
+		let newData = [this.material, this.density];
+		console.log("new material created");
+		console.log("data", newData);
+		this.publish("addNewMaterial", "addNewMaterial", newData);
+		this.publish("polyMaterial", "polyMaterial", newData);
+	}
+	
+	setMaterial(data){
+		console.log("set material fired!");
+		this.materialName = data.action;
+		
+		if (data.action === "Aluminium") {
+            this.metalnessValue = 0.1;
+			this.density = 2710;
+			this.publish("getMetalness", "getMetalness", metalnessValue);
+			let matData = [this.materialName, this.density];
+			this.publish("polyMaterial", "polyMaterial", matData);
+            return;
+        }
+		if (data.action === "Steel") {
+            this.metalnessValue = 0.6;
+			this.density = 7850;
+			this.publish("getMetalness", "getMetalness", metalnessValue);
+			let matData = [this.materialName, this.density];
+			this.publish("polyMaterial", "polyMaterial", matData);
+            return;
+        }
+		if (data.action === "Gray Iron") {
+            this.metalnessValue = 0.9;
+			this.density = 7150;
+			this.publish("getMetalness", "getMetalness", metalnessValue);
+			let matData = [this.materialName, this.density];
+			this.publish("polyMaterial", "polyMaterial", matData);
+            return;
+        }		
+		
+	}
 
     itemsUpdated() {
         this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
@@ -442,6 +584,8 @@ class DrawingCanvasActor {
         stroke.segments.push(segment);
         this.say("drawLine", segment);
     }
+	
+
 
 
 }
@@ -455,6 +599,10 @@ class DrawingCanvasPawn {
         this.listen("colorSelected", "colorSelected");
         this.listen("nibSelected", "nibSelected");
 		
+		this.subscribe("newPosition", "newPosition", this.setNewPosition);
+		
+		this.subscribe("vertexLocation", "vertexLocation", this.drawShapeLine);
+		
 		//from text3D.js
 		this.listen("updateShape", "generateText3D");
 		
@@ -463,22 +611,18 @@ class DrawingCanvasPawn {
 		
 		this.subscribe("precisionInput", "precisionInputX", this.setPointPreciseX);
 		this.subscribe("precisionInput", "precisionInputY", this.setPointPreciseY);
-		this.subscribe("precisionInput", "precisionInputSubmit", this.setPointPrecise);
-		
-		this.subscribe("assignMass", "assignMass", this.assignMass);
-		
-		//add interaction listener for setting points
-		
-		this.addEventListener("pointerTap", "setPoint");		
+		this.subscribe("precisionInput", "precisionInputSubmit", this.setPointPrecise);	
 
 		//define storage of arrays locally in avatar, and define arrays
 		//hard coded shortcut method of creating a new global array to store variables
 		let myAvatar = this.getMyAvatar();
 		
-		myAvatar.density = 0;
-		
 		//define array to store vertices on the canvas, then used to generate the 3D object
-		//this array is a nested array. The points are defined as "x" and "y" floats, stored in a small array, stored in vertexPoints 
+		
+		//This array is a nested array used for storing the vertices on the canvas (2D) 
+		//The points are defined as "x" and "y" floats, stored in a small 2-element array
+		//This array is used for determining if the lines drawn by the user can form a loop 
+		//by calculating the intercept point between the first and last lines
 		myAvatar.vertexPoints = [];
 		
 		//define array to store ThreeJS Vector3 points, used to draw lines on canvas
@@ -499,6 +643,9 @@ class DrawingCanvasPawn {
 		myAvatar.extrusionParameters.push(0);//varBevelSize
 		myAvatar.extrusionParameters.push(0);//varBevelOffset
 		myAvatar.extrusionParameters.push(0);//varBevelSegments				
+		
+		//this.metalnessValue = 0;
+		//this.subscribe("getMetalness", "getMetalness", this.setMetalness);
 
 		//randomize pen colour when initiated (including when canvas is reset)
         this.color = this.randomColor();
@@ -511,14 +658,31 @@ class DrawingCanvasPawn {
         console.log("DrawingCanvasPawn.setup");
     }
 	
+	setNewPosition(data){
+		console.log("setNewPosition activated");
+		console.log("data.vertexIndex", data.vertexIndex);
+		console.log("data.XYZ", data.XYZ);
+		
+		let vec3 = data.XYZ.xyz;	
+		
+		let cooked = this.cookEvent(data.XYZ);
+		let newPosition = [cooked.x, cooked.y];		
+		
+		myAvatar.vertexPoints[data.vertexIndex] = newPosition;
+		myAvatar.vector3Points[data.vertexIndex] = new THREE.Vector3( (vec3[0]) , (vec3[1]), (vec3[2])  );
+		console.log("myAvatar.vertexPoints[data.vertexIndex]", myAvatar.vertexPoints[data.vertexIndex]);
+		
+		this.publish("drawNewLine", "drawNewLine");
+	}	
+	
+	//setMetalness(data){
+	//	this.metalnessValue = data;
+	//	return;
+	//}
+	
     resize(width, height) {
         console.log(width, height);
     }
-	
-	assignMass(density){
-		myAvatar.density = density;
-		console.log("myAvatar.density", myAvatar.density);
-	}
 	
 	drawCanvas(){
 		let canvas = this.canvas;
@@ -550,32 +714,24 @@ class DrawingCanvasPawn {
 		
 	}
 	
-	
-	//WORKING
-	setPoint(evt){	
+	drawShapeLine(evt){
+		console.log("drawShapeLine", evt);
+		
 		//system to log x and y position on canvas based on pointerTap coordinate in 3D space in the world
-		evt = this.cookEvent(evt);
+		let evt2D = this.cookEvent(evt);
 		
-		//define offsetx/y as being x/y coordinate of mouse at the moment the pointerTap event was logged
-        let offsetX = evt.x;
-        let offsetY = evt.y;
-		myAvatar.vertexPoints.push([offsetX, offsetY]);
+        let offsetX = evt2D.x;
+        let offsetY = evt2D.y;
+		myAvatar.vertexPoints.push([offsetX, offsetY]);	
+		//this is necessary for the line interception system
 		
-		//-0.5 is needed for proper alignment. Same is used in cookEvent(evt)
-		myAvatar.vector3Points.push( new THREE.Vector3( (offsetX * 0.001) - 0.5, 2.974, (offsetY * 0.001) - 0.5 ) );
+		let vec3 = evt.xyz;
 		
-		if (myAvatar.vector3Points.length > 1){
-			
-			const material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
-			const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.vector3Points );
-			const line = new THREE.Line( geometry, material );
-			line.rotation.z = -Math.PI / 2;
-			line.rotation.x = Math.PI / 2;
-			
-			scene.add( line );
-		}
+		myAvatar.vector3Points.push( new THREE.Vector3( (vec3[0]) , (vec3[1]), (vec3[2])  ) );		
 		
-		return;
+		//let data = {rawEvt: evt, cookedEvt: evt2D};
+		
+		this.publish("drawLine", "drawLine");	
 	}
 
 	setPointPreciseX(data){	
@@ -588,24 +744,7 @@ class DrawingCanvasPawn {
 	
 	setPointPrecise(){	
 	
-		let offsetX = myAvatar.storeArrayX[myAvatar.storeArrayX.length - 1];
-		let offsetY = myAvatar.storeArrayY[myAvatar.storeArrayY.length - 1];
-		myAvatar.vertexPoints.push([offsetX, offsetY]);
-		
-		myAvatar.vector3Points.push( new THREE.Vector3( (offsetX * 0.001) - 0.5, 2.97, (offsetY * 0.001) - 0.5 ) );
-		
-		if (myAvatar.vector3Points.length > 1){
-			
-			const material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
-			const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.vector3Points );
-			const line = new THREE.Line( geometry, material );
-			line.rotation.z = -Math.PI / 2;
-			line.rotation.x = Math.PI / 2;
-			
-			scene.add( line );
-		}
-		
-		return;
+
 	}	
 
     resizeAndDraw() {
@@ -626,78 +765,6 @@ class DrawingCanvasPawn {
     nibSelected(nib) {
         this.nib = nib;
     }
-	
-
-    clear1() {	
-/* 		//clear1 is the button on the LEFT. It generates CURVED shapes
-		console.log("this is clear1");
-		//////START
-		const shape = new THREE.Shape();
-		
-		//Move or set the .currentPoint to moveTo(x, y)
-		shape.moveTo( 0, 0 );
-		
-		//loop to iterate through array to call shape.lineTo for each element in the array
-
-		let n = 2; 
-
-		while (n < myAvatar.vertexPoints.length) { //n is for array
-				let vert1X = myAvatar.vertexPoints[n-2][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
-				let vert1Y = myAvatar.vertexPoints[n-2][1] * 0.001;
-
-				let vert2X = myAvatar.vertexPoints[n-1][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
-				let vert2Y = myAvatar.vertexPoints[n-1][1] * 0.001;	
-
-				let vertX = myAvatar.vertexPoints[n][0] * 0.001; //variable assignment and downscaling vertex number, to reduce size of object when extruded
-				let vertY = myAvatar.vertexPoints[n][1] * 0.001;			
-			
-			shape.bezierCurveTo( vert1X, vert1Y, vert2X, vert2Y, vertX, vertY );
-			n++;
-			n++;
-			n++;
-		}
-		let varSteps = myAvatar.extrusionParameters[0];
-		let varDepth = myAvatar.extrusionParameters[1];
-		
-		var varBevelEnabled;
-		if (myAvatar.extrusionParameters[2]){ //check if false
-			console.log(myAvatar.extrusionParameters[2]);
-			let varBevelEnabled = 1;
-		}
-		
-		let varBevelThickness = myAvatar.extrusionParameters[3];
-		let varBevelSize = myAvatar.extrusionParameters[4];
-		let varBevelOffset = myAvatar.extrusionParameters[5];
-		let varBevelSegments = myAvatar.extrusionParameters[6];
-		
-		let extrudeSettings = {
-			steps: varSteps, //3
-			depth: varDepth, //1
-			bevelEnabled: varBevelEnabled, //false
-			bevelThickness: varBevelThickness,//0
-			bevelSize: varBevelSize,//0
-			bevelOffset: varBevelOffset,//0
-			bevelSegments: varBevelSegments//0
-		};
-
-		const geometry1 = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-		const material1 = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-		const newShape = new THREE.Mesh( geometry1, material1 ) ;
-		shape.add(newShape);
-		
-		
-		myAvatar.vertexPoints = [];
-		console.log(myAvatar.vertexPoints);
-		//////END			
-		
-        console.log("CLEAR1");
-        let canvas = this.canvas;
-        let ctx = canvas.getContext('2d');
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        this.texture.needsUpdate = true; */
-    }
-	
 
     drawAll() {
         let global = this.actor._cardData.globalDrawing;
@@ -710,8 +777,6 @@ class DrawingCanvasPawn {
     drawAll1() {
         let global = this.actor._cardData.globalDrawing;
         if (!global) {return;}
-		//this line calls the clear1() method
-        this.clear1();
         this.drawStrokes(global);
     }	
 
@@ -818,6 +883,7 @@ class DrawingCanvasPawn {
     }
 
     cookEvent(evt) {
+		console.log("evt in cookEvent", evt);
 		//This code creates a new instance of Microverse.THREE.Vector3 using the values from evt.xyz
 		//then it clones the matrixWorld property of this.renderObject and then inverts the cloned matrix. 
         if (!evt.xyz) {return;}
@@ -835,7 +901,7 @@ class DrawingCanvasPawn {
         let x = (vec2.x + 0.5) * this.actor._cardData.textureWidth;
         let y = (-vec2.y + 0.5) * this.actor._cardData.textureHeight;
 
-        console.log("x, y:", x, y);
+        console.log("cookevent x, y:", x, y);
 
         return {x, y};
     }
@@ -907,7 +973,7 @@ class ButtonPawn {
 }
 
 
-class unemMenuActor {
+class SelectExtrusionParameterActor {
     show() {
         if (this.menu) {
             this.menu.destroy();
@@ -954,7 +1020,7 @@ class unemMenuActor {
     }
 }
 
-class unemMenuActor2 {
+class ExtrusionParametersControlActor {
     show() {
         if (this.menu) {
             this.menu.destroy();
@@ -974,7 +1040,7 @@ class unemMenuActor2 {
         this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
         this.updateSelections();
 
-        this.listen("fire", "doAction2");
+        this.listen("fire", "doAction");
     }
 
     updateSelections() {
@@ -987,7 +1053,7 @@ class unemMenuActor2 {
         this.menu.call("Menu$MenuActor", "setItems", items);
     }
 
-    doAction2(data) {
+    doAction(data) {
         this.publish(this.id, "doAction2", data);
     }
 
@@ -996,7 +1062,113 @@ class unemMenuActor2 {
     }
 }
 
-class clickToGenerate {
+class MaterialPresetsActor {
+	//this class permits the user to add additional materials to the default list
+	setup(){
+		this.subscribe("addNewMaterial", "addNewMaterial", this.addNewMaterial);	
+	}
+	
+	addNewMaterial(data){
+		this.items.push({label: data[0]});
+		console.log("items in material presets list", this.items);
+		//no publish statement yet
+		//no concept for material submission mechanism yet (use textbox)
+		
+		//it seems that it isn't possible to dynamically add new labels to the `items` array of a menu within the actor, so I was wondering 
+		//if it's possible to dynamically create new menus entirely, populated by new labels using user-inputted data
+		
+	}
+	
+    show() {
+        if (this.menu) {
+            this.menu.destroy();
+        }
+
+        this.menu = this.createCard({
+            name: 'unem menu 3',
+            behaviorModules: ["Menu"],
+            parent: this,
+            type: "2d",
+            noSave: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+			translation: [0, 0, 0.02],
+			
+        });
+		this._cardData.materialsList = ["Aluminium", "Steel", "Gray Iron"];
+        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
+        this.updateSelections();
+
+        this.listen("fire", "doAction");
+    }
+
+	updateSelections() {
+		console.log("action updateSelections 3");
+
+		console.log("updateSelections 3 this._cardData.materialsList", this._cardData.materialsList);
+		
+		// Get the materials list from the card or any other data source
+		const materialsList = this._cardData.materialsList || [];
+
+		// Generate the items array dynamically based on the materials list
+		this.items = materialsList.map((material) => {
+			return { label: material, selected: false };
+		});
+
+		this.menu.call("Menu$MenuActor", "setItems", this.items);
+	}
+
+    doAction(data) {
+        this.publish(this.id, "doAction3", data);
+    }
+
+    itemsUpdated() {
+        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
+    }
+}
+
+class NewMaterialsActor {
+    show() {
+        if (this.menu) {
+            this.menu.destroy();
+        }
+
+        this.menu = this.createCard({
+            name: 'unem menu 4',
+            behaviorModules: ["Menu"],
+            parent: this,
+            type: "2d",
+            noSave: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+			translation: [0, 0, 0.02]
+        });
+
+        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
+        this.updateSelections();
+
+        this.listen("fire", "doAction");
+    }
+
+    updateSelections() {
+        console.log("action updateSelections 4");
+		//default list of 3 materials
+        this.items = [
+            {label: "Submit"}
+        ];	
+        this.menu.call("Menu$MenuActor", "setItems", this.items);
+    }
+
+    doAction(data) {
+        this.publish(this.id, "doAction", data);
+    }
+
+    itemsUpdated() {
+        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
+    }
+}
+
+class clickToGenerateActor {
 
     show() {
         if (this.menu) {
@@ -1017,21 +1189,20 @@ class clickToGenerate {
         this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
         this.updateSelections3();
 
-        this.listen("fire", "doAction3");
+        this.listen("fire", "doAction");
     }
 
     updateSelections3() {
         console.log("action");
         let items = [
-            {label: "Extrude Curved Shape"},
             {label: "Extrude Polygon"},
         ];
 
         this.menu.call("Menu$MenuActor", "setItems", items);
     }
 
-    doAction3(data) {
-        this.publish(this.id, "doAction3", data);
+    doAction(data) {
+        this.publish(this.id, "doAction", data);
 		this.publish("calculateData", "calculateData");
     }
 
@@ -1080,7 +1251,6 @@ class smallDisplayPawn {
 		ctx.fillText(0, 240, 1060);
 		
 		this.texture.needsUpdate = true;
-        this.publish(this.id, "setColor", color);
 		//This sets the initial display
     }
 	
@@ -1124,7 +1294,6 @@ class smallDisplayPawn {
 		  
 			ctx.fillText(myAvatar.displayItemsArray[i], 240, 130 + i * 155);
 			this.texture.needsUpdate = true;
-			this.publish(this.id, "setColor", color);
 		}
     }	
 	
@@ -1141,8 +1310,14 @@ class smallDisplayPawn {
 
 class polyDataDisplayPawn{
 	setup(){
-		this.subscribe("polyData", "polyData", this.displayData);
 		//Sets the labels
+		this.dataTypeDisplay();
+		this.subscribe("polyData", "polyData", this.clear);
+		this.subscribe("polyData", "polyData", this.displayData);
+		
+	}
+	
+	dataTypeDisplay(){
         let color = "#FFFFFF";
         let ctx = this.canvas.getContext("2d");
         ctx.textAlign = "left";
@@ -1155,7 +1330,7 @@ class polyDataDisplayPawn{
 		ctx.fillText("Mass: ", 40, 680);
 		
 		this.texture.needsUpdate = true;
-        this.publish(this.id, "setColor", color);	
+		
 	}
 
 	displayData(data){
@@ -1164,6 +1339,8 @@ class polyDataDisplayPawn{
         ctx.textAlign = "left";
         ctx.fillStyle = color;
         ctx.font = "100px Arial";	
+		
+		this.dataTypeDisplay();
 
 		let polyArea = data[1].toFixed(2);
 		let polyVolume = data[2].toFixed(2);
@@ -1180,15 +1357,83 @@ class polyDataDisplayPawn{
 		ctx.fillText(polyMass + " g", 540, 680);
 		
 		
-		this.texture.needsUpdate = true;
-        this.publish(this.id, "setColor", color);		
+		this.texture.needsUpdate = true;	
 	}	
+	
+    clear() {
+		console.log("Clear method triggered");	
+        let ctx = this.canvas.getContext("2d");
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		this.texture.needsUpdate = true;
+		
+		return;
+    }	
 	
 }
 	
+class MaterialsDisplayPawn{
+	setup(){
+		//Sets the labels
+		this.dataTypeDisplay();
+		this.subscribe("polyMaterial", "polyMaterial", this.clear);
+		this.subscribe("polyMaterial", "polyMaterial", this.displayData);
+	}
 	
+	dataTypeDisplay(){
+        let color = "#FFFFFF";
+        let ctx = this.canvas.getContext("2d");
+        ctx.textAlign = "left";
+        ctx.fillStyle = color;
+        ctx.font = "100px Arial";		
+
+		ctx.fillText("Material: ", 40, 140);
+		ctx.fillText("Density: ", 40, 320);		
+		
+		this.texture.needsUpdate = true;
+		
+	}	
+
+	displayData(data){
+		console.log("matData in data", data);
+        let color = "#FFFFFF";
+        let ctx = this.canvas.getContext("2d");
+        ctx.textAlign = "left";
+        ctx.fillStyle = color;
+        ctx.font = "100px Arial";	
+		
+		this.dataTypeDisplay();
+
+		let material = data[0];
+		let density = data[1];
+	
+		let polyMaterial = String(material);
+		let polyDensity = String(density);
+	
+		//Sets the data to the right of the labels
+		ctx.fillText(polyMaterial, 540, 140);
+		ctx.fillText(polyDensity + " kg/m³", 540, 320);		
+		
+		
+		this.texture.needsUpdate = true;	
+	}	
+	
+    clear() {
+		console.log("Clear method triggered");	
+        let ctx = this.canvas.getContext("2d");
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		this.texture.needsUpdate = true;
+		
+		return;
+    }		
+	
+}	
 
 class precisionInputActor {
+	//this class is responsible for providing a textbox for user inputs to two tools:
+	//1. precise inputs of new vertex coordinates on the canvas
+	//2. the material and density input for extrusion
 	setup(){
 		//event "changed" comes from TextFieldActor in text card. It is not published in this behaviour file 
 		this.subscribe(this.id, "changed", this.init);
@@ -1204,21 +1449,27 @@ class precisionInputActor {
 		
 		if (this.name === "coordinate text bar") {
 			
-		  // work on data from upper text field (x-coordinate)
-		  let x = this.value;
-		  this.publish("precisionInput", "precisionInputX", x);
+			// work on data from upper text field (x-coordinate)
+			let x = this.value;
+			this.publish("precisionInput", "precisionInputX", x);
 		  
 		} else if (this.name === "coordinate text bar 2") {
 			
-		  // work on data from upper text field (y-coordinate)
-		  let y = this.value;
-		  this.publish("precisionInput", "precisionInputY", y);
+			// work on data from upper text field (y-coordinate)
+			let y = this.value;
+			this.publish("precisionInput", "precisionInputY", y);
+		  
+		} else if (this.name === "material text bar") {
+			
+			let material = this.value;
+			console.log("material in init()", material);
+			this.publish("assignMaterial", "assignMaterial", material);
 		  
 		} else if (this.name === "density text bar") {
 			
-		  let density = this.value;
-		  console.log("density in init()", density);
-		  this.publish("assignMass", "assignMass", density);
+			let density = this.value;
+			console.log("density in init()", density);
+			this.publish("assignDensity", "assignDensity", density);
 		  
 		} 
 		
@@ -1268,23 +1519,13 @@ class precisionInputActor {
 
 }
 
-/* class CardCreatorActor {
-    setup() {
-
-    }
-} */
-
 class CardCreatorPawn {
 	setup(){	
 		console.log("cardCreate has fired");
-		console.log("this.id", this.id);
-		console.log("this.actor.id", this.actor.id);
-		
-		console.log("this.service PawnManager", this.service("PawnManager"));
-		console.log("this.service ThreeRenderManager", this.service("ThreeRenderManager"));
 	
 		let pointsArray = this.actor._cardData.dataPackage1; 
 		let extrudeSettings = this.actor._cardData.dataPackage2;
+		let metalnessValue = this.actor._cardData.dataPackage3;
 		
 		// Shape for extrusion
 		const shape = new THREE.Shape();
@@ -1303,14 +1544,275 @@ class CardCreatorPawn {
 		shape.lineTo(pointsArray[0][0] * 0.001, pointsArray[0][1] * 0.001);	
 	
 		const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-		const material = new THREE.MeshStandardMaterial( {color: 0xcccccc, metalness: 0.8} );
+		const material = new THREE.MeshStandardMaterial( {color: 0xcccccc, metalness: metalnessValue} );
 		const newShape = new THREE.Mesh( geometry, material );
 		
 		newShape.rotation.x = Math.PI;
 		newShape.rotation.y = -Math.PI / 2;
 
-		this.shape.add(newShape);
+		this.shape.add(newShape);		
+	}	
+	
+}
+
+class CylinderCreatorPawn{
+	setup(){	
+		var arcShape = new THREE.Shape();
+		arcShape.absarc(0, 0, 1, 0, Math.PI * 2, 0, false);
+		//.absarc ( x : Float, y : Float, radius : Float, startAngle : Float, endAngle : Float, clockwise : Boolean )
+	/*  x, y -- The absolute center of the arc.
+		radius -- The radius of the arc.
+		startAngle -- The start angle in radians.
+		endAngle -- The end angle in radians.
+		clockwise -- Sweep the arc clockwise. Defaults to false 
+	*/
+
+		var holePath = new THREE.Path();
+		holePath.absarc(0, 0, 0.8, 0, Math.PI * 2, true);
+		arcShape.holes.push(holePath);
+
+		var geometry = new THREE.ExtrudeGeometry(arcShape, extrudeSettings);
+
+		const material = new THREE.MeshStandardMaterial( {color: 0xcccccc, metalness: metalnessValue} );
+		const newShape = new THREE.Mesh( geometry, material );
+
+		newShape.rotation.x = Math.PI;
+		newShape.rotation.y = -Math.PI / 2;
+
+		this.shape.add(newShape); 
 	}
+}
+
+class VertexMarkerActor{
+	setup(){
+		this.popupCards = [];
+		this.addEventListener("pointerMove", "nop");
+		this.addEventListener("pointerEnter", this.generatePopupCard);
+		
+		this.addEventListener("pointerLeave", "unhilite");
+		this.addEventListener("pointerDown", "removePopup");
+		this.addEventListener("pointerTap", "setNewPosition");
+		
+		console.log("position of the vertex is", this._cardData.vertexIndex);
+	}	
+	
+	//code to spawn a pop-up card that will display the coordinates of the vertex that the user has mouse-overed
+	//currently non-functioning
+	generatePopupCard() {
+		
+		//set popup card translation so that it is just above the vertex
+		let evt = this._cardData.vec3Position;
+		let vec3 = new Microverse.THREE.Vector3(...evt.xyz);
+		let popupTranslation = [vec3.x, vec3.y + 0.1, vec3.z];
+		let index = this._cardData.vertexIndex;
+		
+		this.entered = true;
+		let popupCard = this.createCard({
+			name:"popup box",
+			translation: popupTranslation,
+			rotation: [0, -Math.PI / 2, 0],
+			scale: [0.5, 0.5, 0.5],
+			type: "2d",
+			textureType: "canvas",
+			textureWidth: 1600,
+			textureHeight: 400,
+			width: 4,
+			height: 1,
+			frameColor: 0x888888,
+            behaviorModules: ["Popup Display", "SingleUser"],
+			popupIndex: this._cardData.vertexIndex,
+		});
+		this.popupCards.push( popupCard );	
+		return;
+	}
+	
+	unhilite(evt) {
+        this.popupCards.forEach((c) => c.destroy());
+	}
+	
+	removePopup(){
+		this.popupCards.forEach((c) => c.destroy());
+	}
+	
+	setNewPosition(evt){
+		console.log("current evt", evt);
+		let v = this._cardData.vertexIndex;
+		
+		const newPosition = { vertexIndex: v, XYZ: evt};
+		this.publish("newPosition", "newPosition", newPosition);		
+	}
+    	
+}
+
+class VertexMarkerPawn {
+	setup(){	
+		this.addVertexMarker();
+        this.addEventListener("pointerMove", "pointerMove");
+        this.addEventListener("pointerDown", "pointerDown");
+        this.addEventListener("pointerUp", "pointerUp");
+        //this.listen("translationSet", "translated");
+        //this.listen("rotationSet", "translated");				
+	}	
+	
+	//to add vertex marker itself onto the canvas. This marker is draggable
+	addVertexMarker(){
+		let evt = this.actor._cardData.vec3Position;
+		let vec3 = new Microverse.THREE.Vector3(...evt.xyz);
+	
+		const shape = new THREE.Shape();
+        let geometry = new Microverse.THREE.SphereGeometry(0.015, 16, 16);
+        let material = new Microverse.THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+        let vertexMarker = new Microverse.THREE.Mesh(geometry, material);
+		
+		vertexMarker.position.x = vec3.x;
+		vertexMarker.position.y = vec3.y;
+		vertexMarker.position.z = vec3.z;			
+		
+		this.shape.add(vertexMarker);
+
+		//this.popupCards = [];		
+	}
+	
+	//all drag function code from here on
+	/* translated(_data) {
+        this.scrollAreaPawn.say("updateDisplay");
+    }	 */
+	
+    moveMyself(evt) {
+        //move the snowball itself. 
+        if (!evt.ray) {return;}
+
+        let {THREE, v3_add, v3_sub} = Microverse;
+
+        let origin = new THREE.Vector3(...evt.ray.origin);
+        let direction = new THREE.Vector3(...evt.ray.direction);
+        let ray = new THREE.Ray(origin, direction);
+
+        let dragPoint = ray.intersectPlane(
+            this._dragPlane,
+            new Microverse.THREE.Vector3()
+        );
+
+        let down = this.downInfo.downPosition;
+        let drag = dragPoint.toArray();
+
+        let diff = v3_sub(drag, down);
+        let newPos = v3_add(this.downInfo.translation, diff);
+
+        let [x,y,z] = newPos; //find movement vector from mouse position
+
+        this.set({translation: [0,y,z]}); // x value is always 12!
+    }
+
+    pointerMove(evt) {
+        if (!this.downInfo) {return;}
+
+        if (!this.downInfo.child) {
+            return this.moveMyself(evt);
+        }
+
+        if (!evt.xyz) {return;}
+        let vec = new Microverse.THREE.Vector3(...evt.xyz);
+        let pInv = this.renderObject.matrixWorld.clone().invert();
+        vec = vec.applyMatrix4(pInv);
+
+        let origDownPoint = this.downInfo.downPosition;
+        let origTranslation = this.downInfo.childTranslation;
+
+        let deltaX = vec.x - origDownPoint.x;
+        let deltaY = vec.y - origDownPoint.y;
+
+        this.downInfo.child.translateTo([origTranslation[0] + deltaX, origTranslation[1] + deltaY, origTranslation[2]]);
+    }
+
+    pointerDown(evt) {
+        if (!evt.xyz) {return;}
+        let {THREE, q_yaw, v3_rotateY} = Microverse;
+
+        let avatar = this.getMyAvatar();
+        let yaw = q_yaw(avatar.rotation);
+        let normal = v3_rotateY([0, 0, -1], yaw);
+
+        this._dragPlane = new THREE.Plane();
+        this._dragPlane.setFromNormalAndCoplanarPoint(
+            new THREE.Vector3(...normal),
+            new THREE.Vector3(...evt.xyz)
+        );
+
+        this.downInfo = {translation: this.translation, downPosition: evt.xyz};
+        if (avatar) {
+            avatar.addFirstResponder("pointerMove", {}, this);
+        }
+    }
+
+    pointerUp(_evt) {
+        this._dragPlane = null;
+        let avatar = this.getMyAvatar();
+        if (avatar) {
+            avatar.removeFirstResponder("pointerMove", {}, this);
+        }
+    }		
+}
+
+class DrawLinePawn {
+	setup(){
+		this.subscribe("drawLine", "drawLine", this.drawALine);
+	}
+	
+	drawALine(){
+		const shape = new THREE.Shape();
+		
+		const material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
+		const geometry = new THREE.BufferGeometry().setFromPoints( myAvatar.vector3Points );
+		const line = new THREE.Line( geometry, material );
+		//line.rotation.y = -90 * Math.PI / 180;
+		//line.translateX(-3);
+		console.log("line drawn here");
+		this.shape.add( line );			
+		
+	}
+}
+
+class PopupPawn {
+	setup(){	
+		
+		console.log("myAvatar.vertexPoints in popup pawn", myAvatar.vertexPoints);
+	
+        let color = "#FFFFFF";
+        let ctx = this.canvas.getContext("2d");
+        ctx.textAlign = "left";
+        ctx.fillStyle = color;
+        ctx.font = "100px Arial";		
+
+		ctx.fillText("X: ", 40, 140);
+		ctx.fillText("Y: ", 40, 320);		
+		
+		this.texture.needsUpdate = true;	
+		this.displayData();
+	}	
+
+	displayData(data){
+		let index = this.actor._cardData.popupIndex;
+
+		this.x = myAvatar.vertexPoints[index][0];
+		this.y = myAvatar.vertexPoints[index][1];
+		
+        let color = "#FFFFFF";
+        let ctx = this.canvas.getContext("2d");
+        ctx.textAlign = "left";
+        ctx.fillStyle = color;
+        ctx.font = "100px Arial";	
+	
+		let msgX = String(this.x);
+		let msgY = String(this.y);
+		
+		//Sets the data to the right of the labels
+		ctx.fillText(msgX, 540, 140);
+		ctx.fillText(msgY, 540, 320);		
+		
+		this.texture.needsUpdate = true;	
+	}	
+	
 }
 
 
@@ -1326,18 +1828,25 @@ export default {
             actorBehaviors: [ButtonActor],
             pawnBehaviors: [ButtonPawn],
         },
-		
 		{
-            name: "unemMenu",
-            actorBehaviors: [unemMenuActor]
+            name: "SelectExtrusionParameter",
+            actorBehaviors: [SelectExtrusionParameterActor]
         },
 		{
-            name: "unemMenu2",
-            actorBehaviors: [unemMenuActor2]
+            name: "ExtrusionParametersControl",
+            actorBehaviors: [ExtrusionParametersControlActor]
+        },			
+		{
+            name: "MaterialPresetsMenu",
+            actorBehaviors: [MaterialPresetsActor]
+        },		
+		{
+            name: "NewMaterialsMenu",
+            actorBehaviors: [NewMaterialsActor]
         },		
 		{
             name: "clickToGenerate",
-            actorBehaviors: [clickToGenerate]
+            actorBehaviors: [clickToGenerateActor]
         },
 		{
             name: "smallDisplay",
@@ -1346,6 +1855,10 @@ export default {
 		{
             name: "polyDataDisplay",
             pawnBehaviors: [polyDataDisplayPawn]
+        },		
+		{
+            name: "Materials Display",
+            pawnBehaviors: [MaterialsDisplayPawn]
         },
 		{
             name: "precisionInput",
@@ -1354,7 +1867,21 @@ export default {
 		{
             name: "CardCreator",
 			pawnBehaviors: [CardCreatorPawn]
-        }	
+        },
+		{
+            name: "Vertex Marker",
+			actorBehaviors: [VertexMarkerActor],
+			pawnBehaviors: [VertexMarkerPawn]
+        },			
+		{
+            name: "Draw Line",
+			pawnBehaviors: [DrawLinePawn]
+        },	
+		{
+            name: "Popup Display",
+			pawnBehaviors: [PopupPawn]
+        },			
+		
     ]
 };
 
