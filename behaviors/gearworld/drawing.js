@@ -665,6 +665,8 @@ class DrawingCanvasPawn {
 		
 		let vec3 = data.XYZ.xyz;	
 		
+		this.publish("setVec3Position", "setVec3Position", vec3);		
+		
 		let cooked = this.cookEvent(data.XYZ);
 		let newPosition = [cooked.x, cooked.y];		
 		
@@ -1594,16 +1596,28 @@ class VertexMarkerActor{
 		this.addEventListener("pointerTap", "setNewPosition");
 		
 		console.log("position of the vertex is", this._cardData.vertexIndex);
+		console.log("this._cardData.vec3Position is", this._cardData.vec3Position);
+		this.vec3 = new Microverse.THREE.Vector3(...this._cardData.vec3Position.xyz);
+		
+		this.subscribe("setVec3Position", "setVec3Position", this.setVec3Position);
 	}	
+	
+	setVec3Position(data){
+		this.vec3 = {x: data[0], y: data[1], z: data[2]};
+		console.log("this.vec3 is", this.vec3);
+	}
 	
 	//code to spawn a pop-up card that will display the coordinates of the vertex that the user has mouse-overed
 	//currently non-functioning
 	generatePopupCard() {
 		
 		//set popup card translation so that it is just above the vertex
-		let evt = this._cardData.vec3Position;
-		let vec3 = new Microverse.THREE.Vector3(...evt.xyz);
-		let popupTranslation = [vec3.x, vec3.y + 0.1, vec3.z];
+		
+		
+		
+		console.log("vec3 in popup card", this.vec3.x);
+		
+		let popupTranslation = [this.vec3.x, this.vec3.y + 0.1, this.vec3.z];
 		let index = this._cardData.vertexIndex;
 		
 		this.entered = true;
