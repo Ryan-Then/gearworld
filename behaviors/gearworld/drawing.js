@@ -630,7 +630,7 @@ class DrawingCanvasActor {
 		
 		//this is the only variable relevant to the polyData calculation, everything else is cosmetic
 		let density = this.userDensity;
-		
+		this.density = this.userDensity;
 		let metalnessValue = this.userMetalnessValue;
 		//colour
 		
@@ -657,10 +657,12 @@ class DrawingCanvasActor {
 		console.log("materialName", materialName);
 		
 		if (materialName in this.materialsArray) {	
+			
 			let matData = [materialName];
 			let tempArray = this.materialsArray[materialName];
 			matData.push(tempArray[0]);
 			matData.push(tempArray[1]);
+			this.density = tempArray[0];
 			
 			console.log("matData", matData);
 			this.publish("polyMaterial", "polyMaterial", matData);
