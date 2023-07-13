@@ -292,7 +292,53 @@ export function init(Constants) {
                 width: 4,
                 height: 4
             }
-		},			
+		},		
+        {
+            card: {
+		        name: "instructions 1",
+				translation: [-1, 0.5, -2.8],
+				type: "2d",
+                textureType: "image",
+                textureLocation: "./assets/images/1.png",
+                cardHilite: 0xffffaa,
+                fullBright: true,
+                cornerRadius: 0.05,
+				scale: [2.5, 2.5, 1],
+                depth: 0.05,
+                shadow: true,
+            }
+        },        
+		
+		{
+            card: {
+		        name: "instructions 2",
+				translation: [-1.9, -0.45, -2.8],
+				type: "2d",
+                textureType: "image",
+                textureLocation: "./assets/images/2.png",
+                cardHilite: 0xffffaa,
+                fullBright: true,
+                cornerRadius: 0.05,
+				scale: [2.5, 2.5, 1],
+                depth: 0.05,
+                shadow: true,
+            }
+        },			
+		{
+            card: {
+		        name: "instructions 3",
+				translation: [0.2, -0.55, -2.8],
+				type: "2d",
+                textureType: "image",
+                textureLocation: "./assets/images/3.png",
+                cardHilite: 0xffffaa,
+                fullBright: true,
+                cornerRadius: 0.05,
+				scale: [1.5, 1.5, 1],
+                depth: 0.05,
+                shadow: true,
+            }
+        },			
         {
             card: {
                 name: "light",
