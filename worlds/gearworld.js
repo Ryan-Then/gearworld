@@ -130,7 +130,7 @@ export function init(Constants) {
             }
         },	
 		
-        {
+/*         {
             card: {
                 name: "coordinate text bar",
                 className: "TextFieldActor",
@@ -170,7 +170,7 @@ export function init(Constants) {
                 shadow: true,
 				behaviorModules: ["precisionInput"],
             }
-        },			
+        },	 */		
 		
         {
             card: {

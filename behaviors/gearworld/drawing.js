@@ -19,6 +19,12 @@ class DrawingCanvasActor {
 		this.userDensity;
 		this.userMetalnessValue;	
 		
+		this.radius = 0.1;
+		this.depth = 0.1;
+		
+		this.subscribe("assignRadius", "assignRadius", this.assignRadius);
+		this.subscribe("assignDepth", "assignDepth", this.assignDepth);
+		
 		//this is responsible for adding vertices on the canvas
 		this.addEventListener("pointerTap", "pointerTap");
 		
@@ -96,7 +102,7 @@ class DrawingCanvasActor {
 		this.createMaterialPresetsMenu();
 		
 		this.NewMaterialsMenu = this.createCard({
-            name: 'label action menu 4',
+            name: 'label action menu 3',
             behaviorModules: ["Menu"],
             translation: [2.9, 0.5, -1.41],
 			rotation: [0, -Math.PI / 2, 0],
@@ -126,9 +132,27 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.ShapePresetsMenu.call("ShapePresetsMenu$shapePresetsMenuActor", "show");
-		//this.subscribe(this.ShapePresetsMenu.id, "doAction", "generateShapePreset");	
-		this.subscribe("generateShapePreset", "generateShapePreset", "generateShapePreset")		
+		this.ShapePresetsMenu.call("ShapePresetsMenu$ShapePresetsMenuActor", "show");
+		this.subscribe(this.ShapePresetsMenu.id, "doAction", "generateShapePreset");			
+		
+		this.PresetParaInput = this.createCard({
+            name: 'label action menu 5',
+            behaviorModules: ["Menu"],
+            translation: [2.9, -0.77, -2.5],
+			rotation: [0, -Math.PI / 2, 0],
+            width: 0.5,
+            height: 0.15,
+            type: "2d",
+            noSave: true,
+			color: 0xcccccc,
+			fullBright: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+        });
+		this.PresetParaInput.call("PresetParaInput$PresetParaInputActor", "show");
+		this.subscribe(this.PresetParaInput.id, "doAction", "generateShapePreset");	
+		//this.subscribe("generateShapePreset", "generateShapePreset", "generateShapePreset")	
+				
 		
 		this.clickToGenerate = this.createCard({
             name: 'label action menu 4',
@@ -147,7 +171,7 @@ class DrawingCanvasActor {
 		this.clickToGenerate.call("clickToGenerate$clickToGenerateActor", "show");
 		this.subscribe(this.clickToGenerate.id, "doAction", "checkIntersection");				
 
-		this.precisionInput = this.createCard({
+		/* this.precisionInput = this.createCard({
             name: 'precisionInput',
             behaviorModules: ["Menu"],
             translation: [2.9, 0.4, 2.1],
@@ -161,7 +185,7 @@ class DrawingCanvasActor {
             depth: 0.01,
             cornerRadius: 0.05,
         });
-		this.precisionInput.call("precisionInput$precisionInputActor", "show");			
+		this.precisionInput.call("precisionInput$precisionInputActor", "show");	 */		
 		
 		//creates sphere
 		
@@ -170,11 +194,15 @@ class DrawingCanvasActor {
 //end setup()
 
 	assignRadius(data){
-		this.radius = data.action;
+		console.log("radius assigned");
+		this.radius = data;
+		console.log("this.radius", this.radius);
 	}	
 	
 	assignDepth(data){
-		this.depth = data.action;
+		console.log("depth assigned");
+		this.depth = data;
+		console.log("this.depth", this.depth);
 	}
 
 	generateShapePreset(data){
@@ -186,8 +214,8 @@ class DrawingCanvasActor {
 				rotation: [-Math.PI / 2, 0, 0],
 				translation: [2.975, 0, -1.5],
 				behaviorModules: ["Earth", "SingleUser"],
-				scale: [0.1, 0.1, 0.1],
-				color: 0x997777,
+				scale: [this.radius * 0.1, this.radius * 0.1, this.radius * 0.1],
+				color: 0xcccccc,
 				physicsShape: "ball",
 				physicsType: "positionBased",
             });		
@@ -200,7 +228,7 @@ class DrawingCanvasActor {
 				rotation: [-Math.PI / 2, 0, 0],
 				translation: [2.975, 0, -1.5],
 				behaviorModules: ["Physics", "Cascade"],
-				scale: [0.1, 0.1, 0.1],
+				scale: [this.radius * 0.1, this.depth, this.radius * 0.1],
 				color: 0x997777,
 				physicsShape: "cylinder",
                 physicsType: "positionBased"
@@ -215,9 +243,9 @@ class DrawingCanvasActor {
 				rotation: [-Math.PI / 2, 0, 0],
 				translation: [2.975, 0, -1.5],
 				behaviorModules: ["Physics", "CylinderCreator"],
-				scale: [0.1, 0.1, 0.1],
+				scale: [0.1, this.radius * 0.1, this.radius * 0.1],
 				color: 0x997777,
-				depth: this.depth,
+				userDepth: this.depth,
             });		
 		}			
 			
@@ -229,8 +257,8 @@ class DrawingCanvasActor {
 				rotation: [-Math.PI / 2, 0, 0],
 				translation: [2.975, 0, -1.5],
 				behaviorModules: ["Physics", "Cascade"],
-				scale: [0.9, 0.2, 0.2],
-				color: 0x997777,
+				scale: [this.depth * 0.1, this.radius * 0.1, this.radius * 0.1],
+				color: 0xcccccc,
 				physicsShape: "cuboid",
 				physicsType: "positionBased",
             });		
@@ -535,12 +563,12 @@ class DrawingCanvasActor {
 			let trueOrFalse = Number.isInteger(anotherArrayElement);
 			console.log(trueOrFalse);
 			if (!trueOrFalse){
-			if (anotherArrayElement == false){
-				myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
-			} 
-			if (anotherArrayElement == true){
-				myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
-			}
+				if (anotherArrayElement == false){
+					myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
+				} 
+				if (anotherArrayElement == true){
+					myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = !anotherArrayElement;
+				}
 			} else {
 			anotherArrayElement++;
 			myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice] = anotherArrayElement;
@@ -1303,7 +1331,6 @@ class NewMaterialsActor {
     }
 
     updateSelections() {
-        console.log("action updateSelections 4");
         this.items = [
             {label: "Submit"}
         ];	
@@ -1317,6 +1344,50 @@ class NewMaterialsActor {
     itemsUpdated() {
         this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
     }
+}
+
+class ShapePresetsMenuActor{
+    show() {
+        if (this.menu) {
+            this.menu.destroy();
+        }
+
+        this.menu = this.createCard({
+            name: 'unem menu 5',
+            behaviorModules: ["Menu"],
+            parent: this,
+            type: "2d",
+            noSave: true,
+            depth: 0.01,
+            cornerRadius: 0.05,
+			translation: [0, 0, 0.02]
+        });
+
+        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
+        this.updateSelections();
+
+        this.listen("fire", "doAction");
+    }
+
+    updateSelections() {
+        console.log("action updateSelections");
+        let items = [
+            {label: "Sphere"},
+            {label: "Cylinder"},
+            {label: "Cylindrical Pipe"},
+			{label: "Cuboid"},
+        ];
+
+        this.menu.call("Menu$MenuActor", "setItems", items);
+    }
+
+    doAction(data) {
+        this.publish(this.id, "doAction", data);
+    }
+
+    itemsUpdated() {
+        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
+    }	
 }
 
 class clickToGenerateActor {
@@ -1584,7 +1655,7 @@ class MaterialsDisplayPawn{
 	
 }	
 
-class precisionInputActor {
+/* class precisionInputActor {
 	//this class is responsible for providing a textbox for user inputs to two tools:
 	//1. precise inputs of new vertex coordinates on the canvas
 	//2. the material and density input for extrusion
@@ -1654,11 +1725,9 @@ class precisionInputActor {
 	}
 
 	
-    /* itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }	 */
 
-}
+
+} */
 
 class materialInputActor {
 	//this class is responsible for providing a textbox for user inputs to two tools:
@@ -1714,7 +1783,7 @@ class materialInputActor {
         //this.subscribe(this.menu1.id, "itemsUpdated", "itemsUpdated");
         this.updateSelections4();
 
-        this.listen("fire", "doAction4");
+        this.listen("fire", "doAction");
     }
 
     updateSelections4() {
@@ -1727,7 +1796,7 @@ class materialInputActor {
 	
 	
 	//action method
-    doAction4() { //handles y-coordinate
+    doAction() { 
 		this.publish("precisionInput", "precisionInputSubmit");
 		
 	}
@@ -1739,7 +1808,7 @@ class materialInputActor {
 
 }
 
-class PresetParaInput {
+class PresetParaInputActor {
 	setup(){
 		//event "changed" comes from TextFieldActor in text card. It is not published in this behaviour file 
 		this.subscribe(this.id, "changed", this.init);
@@ -1751,7 +1820,7 @@ class PresetParaInput {
 
 		if (this.name === "depth text bar") {
 			
-			let depth = this.value;
+			let depth = parseInt(this.value);
 			console.log("depth in init()", depth);
 			this.publish("assignDepth", "assignDepth", depth);
 		  
@@ -1856,9 +1925,12 @@ class CylinderCreatorPawn{
 		endAngle -- The end angle in radians.
 		clockwise -- Sweep the arc clockwise. Defaults to false 
 	*/
+		console.log("this.actor._cardData.userDepth", this.actor._cardData.userDepth);
+		let tempVar = this.actor._cardData.userDepth;
+		
 		
 		let extrudeSettings = {
-			depth: 0.1
+			depth: this.actor._cardData.userDepth,
 		};
 
 		var holePath = new THREE.Path();
@@ -2110,52 +2182,6 @@ class PopupPawn {
 	
 }
 
-class shapePresetsMenuActor{
-    show() {
-        if (this.menu) {
-            this.menu.destroy();
-        }
-
-        this.menu = this.createCard({
-            name: 'unem menu',
-            behaviorModules: ["Menu"],
-            parent: this,
-            type: "2d",
-            noSave: true,
-            depth: 0.01,
-            cornerRadius: 0.05,
-			translation: [0, 0, 0.02]
-        });
-
-        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
-        this.updateSelections();
-
-        this.listen("fire", "doAction");
-    }
-
-    updateSelections() {
-        console.log("action updateSelections");
-        let items = [
-            {label: "Sphere"},
-            {label: "Cylinder"},
-            {label: "Cylindrical Pipe"},
-			{label: "Cuboid"},
-			//{label: "Bevel Size"},
-			//{label: "Bevel Offset"},
-			//{label: "Bevel Segments"},
-        ];
-
-        this.menu.call("Menu$MenuActor", "setItems", items);
-    }
-
-    doAction(data) {
-        this.publish(this.id, "doAction", data);
-    }
-
-    itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }	
-}
 
 
 export default {
@@ -2202,10 +2228,10 @@ export default {
             name: "Materials Display",
             pawnBehaviors: [MaterialsDisplayPawn]
         },
-		{
+		/* {
             name: "precisionInput",
 			actorBehaviors: [precisionInputActor]
-        },
+        }, */
 		{
             name: "materialInput",
 			actorBehaviors: [materialInputActor]
@@ -2229,11 +2255,15 @@ export default {
         },			
 		{
             name: "ShapePresetsMenu",
-			actorBehaviors: [shapePresetsMenuActor]
+			actorBehaviors: [ShapePresetsMenuActor]
         },			
 		{
             name: "CylinderCreator",
 			pawnBehaviors: [CylinderCreatorPawn]
+        },
+		{
+            name: "PresetParaInput",
+			actorBehaviors: [PresetParaInputActor]
         },			
 		
     ]
