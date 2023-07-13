@@ -350,32 +350,36 @@ class DrawingCanvasActor {
 			const x = (c2 - c1) / (m1 - m2);
 			const y = m1 * x + c1;
 			
-			//add if statement to handle shapes that don't have a closed loop by automatically closing the loop
-			//work on it!
+			//to handle shapes that don't have a closed loop by automatically closing the loop
 			
-			myAvatar.substituteArray = [];
-			myAvatar.substituteArray.push([x, y]);
+			const det = (endPoint2X - startPoint2X) * (endPoint1Y - startPoint1Y) - (endPoint2Y - startPoint2Y) * (endPoint1X - startPoint1X);
+			const t1 = ((endPoint2X - startPoint2X) * (startPoint2Y - startPoint1Y) - (endPoint2Y - startPoint2Y) * (startPoint2X - startPoint1X)) / det;
+			const t2 = ((endPoint1X - startPoint1X) * (startPoint2Y - startPoint1Y) - (endPoint1Y - startPoint1Y) * (startPoint2X - startPoint1X)) / det;
 			
-			for (let n = 1; n < myAvatar.vertexPoints.length - 1; n++){
-				myAvatar.substituteArray.push([myAvatar.vertexPoints[n][0], myAvatar.vertexPoints[n][1]]);
-			}
-			
-			//CHECK THIS AGAIN (TEMP)
-			let limit = 0;
-			console.log("myAvatar.substituteArray.length", myAvatar.substituteArray.length);
-			if (myAvatar.substituteArray.length === 4){
-				let limit = myAvatar.substituteArray.length;
-				this.publish("canvasExtrude", "canvasExtrude", limit);
-
-			} else {
-				let limit = myAvatar.substituteArray.length;
-				this.publish("canvasExtrude", "canvasExtrude", limit);
+			if (t1 < 0 || t1 > 1 || t2 < 0 || t2 > 1) {
+				// Line segments do not intersect
+				console.log("lines do not intersect, canvas reset");
+				this.publish("removePopup", "removePopup");				
+				return;
+			} else if (myAvatar.vertexPoints.length >= 4){
 				
-			}			
+				// Line segments intersect
+				console.log("lines intersect, shape drawn");
+				myAvatar.substituteArray = [];
+				myAvatar.substituteArray.push([x, y]);
+			
+				for (let n = 1; n < myAvatar.vertexPoints.length - 1; n++){
+					myAvatar.substituteArray.push([myAvatar.vertexPoints[n][0], myAvatar.vertexPoints[n][1]]);
+				}	
+				console.log("myAvatar.substituteArray.length", myAvatar.substituteArray.length);
+				this.publish("canvasExtrude", "canvasExtrude");
+				this.publish("calculateData", "calculateData");
+			}
+						
 		}
 	}
 	
-    canvasExtrude(limit) {	
+    canvasExtrude() {	
 		console.log("canvasExtrude fired");
 		
 		let varSteps = myAvatar.extrusionParameters[0];
@@ -1350,7 +1354,6 @@ class clickToGenerateActor {
 
     doAction(data) {
         this.publish(this.id, "doAction", data);
-		this.publish("calculateData", "calculateData");
     }
 
     itemsUpdated() {
