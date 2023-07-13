@@ -366,6 +366,8 @@ class GizmoPawn {
     }
 }
 
+// Translation class
+
 class GizmoAxisActor {
     setup() {
         this.isGizmoManipulator = true;
@@ -435,7 +437,9 @@ class GizmoAxisPawn {
         );
 
         this.publish(this.parent.id, "interaction");
+		//this.unstick();
     }
+	
 
     drag(event) {
         if (!this.gizmoDragStart || !event.ray) {return;}
@@ -480,6 +484,27 @@ class GizmoAxisPawn {
         // avatar.removeFirstResponder("pointerMove", {shiftKey: true}, this);
         avatar.removeFirstResponder("pointerMove", {}, this);
         this.publish(this.parent.id, "interaction");
+    }
+
+    // remove from current parent into world-space
+    unstick() {
+        if (!this.parent) {return;}
+        // use our global transform as our own translation and rotation
+        let {m4_getTranslation, m4_getRotation} = Microverse;
+        let translation = m4_getTranslation(this.global);
+        let rotation = m4_getRotation(this.global);
+        this.set({parent: null});
+    }
+
+    // stick to a parent preserving our world-space translation and rotation
+    stickTo(parent) {
+        if (!parent || this.parent|| this.isMeOrMyChild(parent)) {return;}
+        // make our rotation and translation relative to the new parent
+        let {m4_invert, m4_multiply, m4_getTranslation, m4_getRotation} = Microverse;
+        let relativeToParent = m4_multiply(this.global, m4_invert(parent.global));
+        let translation = m4_getTranslation(relativeToParent);
+        let rotation = m4_getRotation(relativeToParent);
+        this.set({parent});
     }
 
     pointerEnter() {

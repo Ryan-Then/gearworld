@@ -3,19 +3,7 @@ class OpenRefineryPortalActor {
         this.addEventListener("pointerTap", "pressed");
     }
 
-    check() {
-        let cards = this.queryCards({methodName: "isPortal"}, this);
-        this.hasOpened = cards.length > 0;
-    }
-
-    isPortal(card) {
-        return card.layers.includes("portal");
-    } 
-
     pressed() {
-        this.check();
-        if (this.hasOpened) {return;}
-        this.hasOpened = true;
 
 		this.createCard({
                 name:"earth",
@@ -23,7 +11,7 @@ class OpenRefineryPortalActor {
                 translation: [2.5, 1, -2.5],
                 layers: ["pointer"],
                 scale: [0.1, 0.1, 0.1],
-                behaviorModules: ["Earth", "StickyItem", "SingleUser"],
+                behaviorModules: ["Earth", "SingleUser"],
                 physicsSize: 0.8,
                 physicsShape: "ball",
                 physicsType: "positionBased"
@@ -41,9 +29,7 @@ class OpenRefineryPortalPawn {
     }
 
     setColor() { // Changes colour to green when button is pressed
-        let baseColor = !this.actor.hasOpened
-            ? (this.entered ? 0xeeeeee : 0xcccccc)
-            : 0x22ff22;
+        let baseColor = !this.actor.hasOpened ? (this.entered ? 0xeeeeee : 0xcccccc) : 0x22ff22;
 
         if (this.shape.children[0] && this.shape.children[0].material) {
             this.shape.children[0].material.color.setHex(baseColor);

@@ -60,7 +60,7 @@ class MenuActor {
                     height: 0.15,
                     noSave: true,
                     fullBright: true,
-                    backgroundColor: item.selected ? 0x606060 : 0xcccccc
+                    backgroundColor: item.selected ? 0x606060 : 0xeb4034
                 });
             }
 

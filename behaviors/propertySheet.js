@@ -42,7 +42,7 @@ class PropertySheetActor {
         });
         this.subscribe(this.dismiss.id, "dismiss", "dismissSheet");
     }
-
+	
     dismissSheet(_id) {
         if (this.dismiss) {
             this.dismiss.destroy();
@@ -52,7 +52,8 @@ class PropertySheetActor {
             this.windows.forEach((w) => w.destroy());
         }
         this.destroy();
-    }
+    }	
+
 
     newWindow(extent, position) {
         let sheetWindow = this.createCard({
@@ -108,52 +109,25 @@ class PropertySheetActor {
         this.subscribe(this.cardSpec.id, "text", "cardSpecAccept");
 
         this.actionMenuWindow = this.newWindow({x: 0.8, y: 0.6}, {x: 0.9, y: -1.1});
+		
         this.actionMenu = this.createCard({
             name: 'action menu',
             behaviorModules: ["ActionMenu"],
             translation: [0, 0, 0.08],
-            width: this.actionMenuWindow._cardData.width,
-            height: this.actionMenuWindow._cardData.height,
+            width: this.actionMenuWindow._cardData.width, //this gives the card the same width as the card window
+            height: this.actionMenuWindow._cardData.height, //this gives the card the same height as the card window
             type: "object",
             parent: this.actionMenuWindow,
             noSave: true,
             color: 0xcccccc,
             fullBright: true,
             target: target.id});
-
-        this.behaviorMenuPane = this.createCard({
-            name: "behaivor scroll menu",
-            behaviorModules: ["ScrollArea"],
-            type: "object",
-            translation: [0.85, 0.4, 0.04],
-            width: 1.0 - 0.04,
-            height: 2.0 - 0.04,
-            depth: 0.002,
-            color: 0xcccccc,
-            backgroundColor: 0xcccccc,
-            fullBright: true,
-            parent: this,
-            noSave: true,
-        });
-
-        this.behaviorMenu = this.createCard({
-            name: 'behavior menu',
-            behaviorModules: ["BehaviorMenu"],
-            translation: [0, 0, 0.04],
-            color: 0xcccccc,
-            backgroundColor: 0xcccccc,
-            width: 0.85,
-            height: 2.0,
-            type: "object",
-            fullBright: true,
-            parent: this.behaviorMenuPane,
-            noSave: true,
-            target: target.id});
+		
 
         this.subscribe(this.behaviorMenu.id, "extentChanged", "menuExtentChanged")
-        this.behaviorMenu.call("BehaviorMenu$BehaviorMenuActor", "show");
+        
 
-        this.behaviorMenuPane.call("ScrollArea$ScrollAreaActor", "setTarget", this.behaviorMenu);
+        
         this.subscribe(this.actionMenu.id, "extentChanged", "actionMenuExtentChanged")
         this.subscribe(this.actionMenu.id, "doAction", "doAction")
         this.actionMenu.call("ActionMenu$ActionMenuActor", "show");
@@ -177,6 +151,7 @@ class PropertySheetActor {
     }
 
     doAction(data) {
+		console.log("data.action registered");
         if (!this.target) {return;}
         if (data.action === "Delete") {
             this.target.destroy();
@@ -374,19 +349,17 @@ class PropertySheetPawn {
 
     pointerDown(evt) {
         if (!evt.xyz) {return;}
-        let {THREE, q_yaw, v3_rotateY} = Microverse;
-
-        let avatar = this.getMyAvatar();
-        let yaw = q_yaw(avatar.rotation);
-        let normal = v3_rotateY([0, 0, -1], yaw);
+        let {THREE} = Microverse;
 
         this._dragPlane = new THREE.Plane();
+
         this._dragPlane.setFromNormalAndCoplanarPoint(
-            new THREE.Vector3(...normal),
+            new THREE.Vector3(...evt.ray.direction),
             new THREE.Vector3(...evt.xyz)
         );
 
         this.downInfo = {translation: this.translation, downPosition: evt.xyz};
+        let avatar = this.getMyAvatar();
         if (avatar) {
             avatar.addFirstResponder("pointerMove", {}, this);
         }
@@ -519,247 +492,14 @@ class PropertySheetWindowPawn {
     }
 }
 
+
+
 /*
 
 PropertySheetDismissButton publishes a dismiss event. The container is
 expected to subscribe to it to destroy itself.
 
 */
-
-class PropertySheetDismissActor {
-    setup() {
-    }
-}
-
-class PropertySheetDismissPawn {
-    setup() {
-        this.addEventListener("pointerTap", "tap");
-
-        if (this.back) {
-            this.shape.remove(this.back);
-        }
-
-        let backgroundColor = (this.actor._cardData.backgroundColor !== undefined)
-            ? this.actor._cardData.backgroundColor
-            : 0xcccccc;
-
-        let color = (this.actor._cardData.color !== undefined)
-            ? this.actor._cardData.color
-            : 0x222222;
-
-        let backGeometry = new Microverse.THREE.BoxGeometry(0.08, 0.08, 0.00001);
-        let backMaterial = new Microverse.THREE.MeshStandardMaterial({
-            color: backgroundColor,
-            side: Microverse.THREE.DoubleSide
-        });
-
-        this.back = new Microverse.THREE.Mesh(backGeometry, backMaterial);
-
-        let dismissGeometry = new Microverse.THREE.BoxGeometry(0.07, 0.02, 0.001);
-        let dismissMaterial = new Microverse.THREE.MeshStandardMaterial({
-            color: color,
-            side: Microverse.THREE.DoubleSide
-        });
-
-        let button = new Microverse.THREE.Mesh(dismissGeometry, dismissMaterial);
-        button.position.set(0, 0, 0.00001);
-
-        this.back.add(button)
-
-        this.shape.add(this.back);
-    }
-
-    tap(_p3d) {
-        this.publish(this.actor.id, "dismiss", this.actor.parent.id);
-    }
-}
-
-class PropertySheetEditActor {
-    setup() {
-        this.listen("launchCodeEditor", "launchCodeEditor");
-    }
-
-    launchCodeEditor(data) {
-        console.log(data.pose);
-        this.createCard({
-            name:'code editor',
-            translation: data.pose.translation,
-            rotation: data.pose.rotation,
-            layers: ['pointer'],
-            type: "code",
-            behaviorModule: data.name,
-            margins: {left: 32, top: 32, right: 32, bottom: 32},
-            textScale: 0.001,
-            width: 1.5,
-            height: 2,
-            depth: 0.05,
-            fullBright: true,
-            frameColor: 0x888888,
-            scrollBar: true,
-        });
-    }
-}
-
-class PropertySheetEditPawn {
-    setup() {
-        this.addEventListener("pointerTap", "tap");
-    }
-
-    tap(p3d) {
-        let avatar = this.service("PawnManager").get(p3d.avatarId);
-        if (!avatar) {return;}
-        if (!this.shape.name) {return;}
-        let space = this.shape.name.indexOf(" ");
-        let moduleName = this.shape.name.slice(0, space);
-
-        let toEdit;
-
-        let module = this.actor.behaviorManager.modules.get(moduleName);
-        if (!module) {return;}
-
-        if (module.actorBehaviors && module.actorBehaviors.size > 0) {
-            let [behaviorName, _behavior] = [...module.actorBehaviors][0];
-            toEdit = `${module.name}.${behaviorName}`;
-        }
-        if (!toEdit) {
-            if (module.pawnBehaviors && module.pawnBehaviors.size > 0) {
-                let [behaviorName, _behavior] = [...module.pawnBehaviors][0];
-                toEdit = `${module.name}.${behaviorName}`;
-            }
-        }
-
-        let vec = new Microverse.THREE.Vector3();
-        vec.setFromMatrixPosition(this.shape.matrixWorld);
-        let pose = avatar.dropPose(6);
-        pose.translation = [vec.x, vec.y, vec.z];
-
-        if (toEdit) {
-            this.say("launchCodeEditor", {name: toEdit, pose});
-        }
-    }
-}
-
-class PropertySheetWindowBarActor {
-    setup() {
-    }
-}
-
-class PropertySheetWindowBarPawn {
-    setup() {
-        this.addEventListener("pointerDown", "pointerDown");
-        this.addEventListener("pointerMove", "pointerMove");
-        this.addEventListener("pointerUp", "pointerUp");
-
-        if (this.back) {
-            this.shape.remove(this.back);
-        }
-
-        let backGeometry = new Microverse.THREE.BoxGeometry(0.022, 0.022, 0.00001);
-        let backMaterial = new Microverse.THREE.MeshStandardMaterial({
-            color: 0x882222,
-            side: Microverse.THREE.DoubleSide
-        });
-
-        this.back = new Microverse.THREE.Mesh(backGeometry, backMaterial);
-
-        let dismissGeometry = new Microverse.THREE.BoxGeometry(0.02, 0.005, 0.001);
-        let dismissMaterial = new Microverse.THREE.MeshStandardMaterial({
-            color: 0x000000,
-            side: Microverse.THREE.DoubleSide
-        });
-
-        let button = new Microverse.THREE.Mesh(dismissGeometry, dismissMaterial);
-        button.position.set(0, 0, 0.00001);
-
-        this.back.add(button)
-
-        this.shape.add(this.back);
-    }
-
-    tap(_p3d) {
-        this.publish(this.actor.id, "dismiss", this.actor.parent.id);
-    }
-}
-
-class BehaviorMenuActor {
-    show() {
-        if (this.menu) {
-            this.menu.destroy();
-        }
-
-        let editIconLocation = "3rAfsLpz7uSBKuKxcjHvejhWp9mTBWh8hsqN7UnsOjJoGgYGAgFIXV0UGx4XAVwHAVwRAB0DBxcGXBsdXQddNRYkEAseOwEzGSMRMCoWQTUKEwQLBSc5JSsrQF0bHVwRAB0DBxcGXB8bEQAdBBcAARddKwMGHktLKksKNjocPyIiFBMfJRkzIyRKND4zIAZGRUVGCjECAEEFHRM6N10WEwYTXTUnEQYFHTsXOUQaAxUVFgVERR4kNxY8A0QiBAsQX0dDHTslBipENh83HQU";
-
-        this.menu = this.createCard({
-            name: 'behavior menu',
-            behaviorModules: ["Menu"],
-            multiple: true,
-            parent: this,
-            type: "2d",
-            noSave: true,
-            depth: 0.01,
-            cornerRadius: 0.05,
-            menuIcons: {"_": editIconLocation, "apply": null, "------------": null},
-        });
-
-        this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
-        this.updateSelections();
-
-		console.log("this._cardData.target", this._cardData.target);
-
-
-        this.listen("fire", "setBehaviors");
-        this.subscribe(this._cardData.target, "behaviorUpdated", "updateSelections");
-    }
-
-    updateSelections() {
-        console.log("updateSelections");
-        let target = this.service("ActorManager").get(this._cardData.target);
-        let items = [];
-		
-		console.log("this._cardData.target", this._cardData.target);
-
-        this.targetSystemModules = [];
-        let behaviorModules = [...this.behaviorManager.modules];
-
-        behaviorModules.forEach(([k, v]) => {
-            if (!v.systemModule) {
-                let selected = target._behaviorModules?.indexOf(k) >= 0;
-                let obj = {label: k, selected};
-                items.push(obj);
-            } else {
-                if (target._behaviorModules?.indexOf(k) >= 0) {
-					//use selected:true as the method of highlighting
-                    this.targetSystemModules.push({label: k, selected: true});
-                }
-            }
-        });
-
-        items.push({label: "------------"});
-        items.push({label: 'apply'});
-        this.menu.call("Menu$MenuActor", "setItems", items);
-    }
-
-    setBehaviors(data) {
-        console.log("setBehaviors");
-        let target = this.service("ActorManager").get(this._cardData.target);
-        let selection = [ ...this.targetSystemModules, ...data.selection];
-        let behaviorModules = [];
-
-        selection.forEach((obj) => {
-            let {label, selected} = obj;
-            if (target.behaviorManager.modules.get(label)) {
-                if (selected) {
-                    behaviorModules.push(label);
-                }
-            }
-        });
-        target.updateBehaviors({behaviorModules});
-    }
-
-    itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }
-}
 
 class ActionMenuActor {
     show() {
@@ -811,30 +551,11 @@ export default {
             name: "PropertySheet",
             actorBehaviors: [PropertySheetActor],
             pawnBehaviors: [PropertySheetPawn]
-        },
+        },		
         {
             name: "PropertySheetWindow",
             actorBehaviors: [PropertySheetWindowActor],
             pawnBehaviors: [PropertySheetWindowPawn]
-        },
-        {
-            name: "PropertySheetDismiss",
-            actorBehaviors: [PropertySheetDismissActor],
-            pawnBehaviors: [PropertySheetDismissPawn]
-        },
-        {
-            name: "PropertySheetEdit",
-            actorBehaviors: [PropertySheetEditActor],
-            pawnBehaviors: [PropertySheetEditPawn]
-        },
-        {
-            name: "PropertySheetWindowBar",
-            actorBehaviors: [PropertySheetWindowBarActor],
-            pawnBehaviors: [PropertySheetWindowBarPawn]
-        },
-        {
-            name: "BehaviorMenu",
-            actorBehaviors: [BehaviorMenuActor]
         },
         {
             name: "ActionMenu",

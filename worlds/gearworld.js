@@ -6,7 +6,7 @@ export function init(Constants) {
 
     Constants.UserBehaviorDirectory = "behaviors/gearworld";
     Constants.UserBehaviorModules = [
-        "lights.js", "drawing.js", "gridFloor.js", "earth.js", "createCuboid.js", "createSphere.js", "createCylinder.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
+        "urlLink.js", "lights.js", "drawing.js", "gridFloor.js", "earth.js", "createCuboid.js", "createSphere.js", "createCylinder.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
          ];
 
     Constants.UseRapier = true;
@@ -26,25 +26,107 @@ export function init(Constants) {
                 shadow: true,
             }
         },
-		
+
         {
             card: {
-                name: "density text bar",
+                name: "depth text bar",
                 className: "TextFieldActor",
-                translation: [2.9, 0.6, -1],
+                translation: [2.9, -0.44, -2.5],
                 rotation: [0, -Math.PI / 2, 0],
                 depth: 0.01,
                 type: "text",
-                runs: [{text: "0"}],
+                runs: [{text: "Depth"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                frameColor: frameColor,
+                width: 0.5,
+                height: 0.15,
+                textScale: 0.0015,
+                shadow: true,
+				behaviorModules: ["PresetParaInput"],
+            }
+        },	        
+		{
+            card: {
+                name: "radius text bar",
+                className: "TextFieldActor",
+                translation: [2.9, -0.6, -2.5],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.01,
+                type: "text",
+                runs: [{text: "Radius"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                frameColor: frameColor,
+                width: 0.5,
+                height: 0.15,
+                textScale: 0.0015,
+                shadow: true,
+				behaviorModules: ["PresetParaInput"],
+            }
+        },	       
+		{
+            card: {
+                name: "material text bar",
+                className: "TextFieldActor",
+                translation: [2.9, 0.66, -1.95],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.01,
+                type: "text",
+                runs: [{text: "Material name"}],
                 margins: {left: 20, top: 20, right: 20, bottom: 20},
                 backgroundColor: 0xffffff,
                 color: 0x000000,
                 frameColor: frameColor,
                 width: 0.77,
                 height: 0.15,
-                textScale: 0.002,
+                textScale: 0.0015,
                 shadow: true,
-				behaviorModules: ["precisionInput"],
+				behaviorModules: ["materialInput"],
+            }
+        },	
+		
+        {
+            card: {
+                name: "density text bar",
+                className: "TextFieldActor",
+                translation: [2.9, 0.5, -1.95],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.01,
+                type: "text",
+                runs: [{text: "Density (kg/m³)"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                frameColor: frameColor,
+                width: 0.77,
+                height: 0.15,
+                textScale: 0.0015,
+                shadow: true,
+				behaviorModules: ["materialInput"],
+            }
+        },	
+		
+		{
+            card: {
+                name: "metalness text bar",
+                className: "TextFieldActor",
+                translation: [2.9, 0.34, -1.95],
+                rotation: [0, -Math.PI / 2, 0],
+                depth: 0.01,
+                type: "text",
+                runs: [{text: "Metalness (0.0-1.0)"}],
+                margins: {left: 20, top: 20, right: 20, bottom: 20},
+                backgroundColor: 0xffffff,
+                color: 0x000000,
+                frameColor: frameColor,
+                width: 0.77,
+                height: 0.15,
+                textScale: 0.0015,
+                shadow: true,
+				behaviorModules: ["materialInput"],
             }
         },	
 		
@@ -135,6 +217,26 @@ export function init(Constants) {
             }
 			
 		},
+		
+		{		
+		card: {
+                name: "object materials display",
+                translation: [2.9, 0.63, -1],
+                rotation: [0, -Math.PI / 2, 0],
+                scale: [0.5, 0.5, 0.5],
+                type: "2d",
+                textureType: "canvas",
+                textureWidth: 1600,
+                textureHeight: 600,
+                width: 4,
+                height: 1.5,
+                frameColor: frameColor,
+                // color: 0xffffff,
+                
+                behaviorModules: ["Materials Display"],
+            }
+			
+		},		
 
 		{		
 		card: {
@@ -201,72 +303,7 @@ export function init(Constants) {
             }
         },
 
-        {
-            card: {
-                name: "portal button",
-                translation: [0.5, 0.366177949493676, -2.566177949493676],
-                behaviorModules: ["OpenRefineryPortalButton"],
-				type: "object",
-            }
-        },
-        {
-            card: {
-		        name: "cuboid label",
-				translation: [0.5, 0, -2.566177949493676],
-				type: "2d",
-                textureType: "image",
-                textureLocation: "./assets/images/cuboid.png",
-                cardHilite: 0xffffaa,
-                fullBright: true,
-                cornerRadius: 0.05,
-                depth: 0.05,
-                shadow: true,
-            }
-        },		
-        {
-            card: {
-                name: "portal button sphere",
-                translation: [2.5, 0.366177949493676, -2.566177949493676],
-                behaviorModules: ["OpenRefineryPortalButtonSphere"],
-                type: "object",
-            }
-        },
-        {
-            card: {
-		        name: "sphere label",
-				translation: [2.5, 0, -2.566177949493676],
-				type: "2d",
-                textureType: "image",
-                textureLocation: "./assets/images/sphere.png",
-                cardHilite: 0xffffaa,
-                fullBright: true,
-                cornerRadius: 0.05,
-                depth: 0.05,
-                shadow: true,
-            }
-        },		
-        {
-            card: {
-                name: "portal button cylinder",
-                translation: [-1.5, 0.366177949493676, -2.566177949493676],
-                behaviorModules: ["OpenRefineryPortalButtonCylinder"],
-                type: "object",
-            }
-        },
-        {
-            card: {
-		        name: "cylinder label",
-				translation: [-1.5, 0, -2.566177949493676],
-				type: "2d",
-                textureType: "image",
-                textureLocation: "./assets/images/cylinder.png",
-                cardHilite: 0xffffaa,
-                fullBright: true,
-                cornerRadius: 0.05,
-                depth: 0.05,
-                shadow: true,
-            }
-        }		
+		
 
 
     ];
