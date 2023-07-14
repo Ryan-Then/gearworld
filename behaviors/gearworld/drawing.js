@@ -170,24 +170,6 @@ class DrawingCanvasActor {
         });
 		this.clickToGenerate.call("clickToGenerate$clickToGenerateActor", "show");
 		this.subscribe(this.clickToGenerate.id, "doAction", "checkIntersection");				
-
-		/* this.precisionInput = this.createCard({
-            name: 'precisionInput',
-            behaviorModules: ["Menu"],
-            translation: [2.9, 0.4, 2.1],
-			rotation: [0, -Math.PI / 2, 0],
-            width: 0.3,
-            height: 0.15,
-            type: "2d",
-            noSave: true,
-			color: 0xcccccc,
-			fullBright: true,
-            depth: 0.01,
-            cornerRadius: 0.05,
-        });
-		this.precisionInput.call("precisionInput$precisionInputActor", "show");	 */		
-		
-		//creates sphere
 		
         console.log("DrawingCanvasActor.setup");
     }
@@ -1258,12 +1240,6 @@ class MaterialPresetsActor {
 		console.log("items in material presets list", this.items);
 		console.log("this._cardData.materialsList", this._cardData.materialsList);
 		this.updateSelections();
-		//no publish statement yet
-		//no concept for material submission mechanism yet (use textbox)
-		
-		//it seems that it isn't possible to dynamically add new labels to the `items` array of a menu within the actor, so I was wondering 
-		//if it's possible to dynamically create new menus entirely, populated by new labels using user-inputted data
-		
 	}
 	
     show() {
@@ -1657,80 +1633,6 @@ class MaterialsDisplayPawn{
 	
 }	
 
-/* class precisionInputActor {
-	//this class is responsible for providing a textbox for user inputs to two tools:
-	//1. precise inputs of new vertex coordinates on the canvas
-	//2. the material and density input for extrusion
-	setup(){
-		//event "changed" comes from TextFieldActor in text card. It is not published in this behaviour file 
-		this.subscribe(this.id, "changed", this.init);
-	}
-	
-	init() {
-		//handles value from each text box separately, publishes to separate methods which store the value in separate arrays
-		console.log("triggered init()");
-		
-		let	x = 0;
-		let y = 0;
-		
-		if (this.name === "coordinate text bar") {
-			
-			// work on data from upper text field (x-coordinate)
-			let x = this.value;
-			this.publish("precisionInput", "precisionInputX", x);
-		  
-		} else if (this.name === "coordinate text bar 2") {
-			
-			// work on data from lower text field (y-coordinate)
-			let y = this.value;
-			this.publish("precisionInput", "precisionInputY", y);
-		  
-		}
-		
-	}	
-	
-    show() {
-        if (this.menu1) {
-            this.menu1.destroy();
-        }
-
-        this.menu1 = this.createCard({
-            name: 'click to submit',
-            behaviorModules: ["Menu"],
-            parent: this,
-            type: "2d",
-            noSave: true,
-            depth: 0.01,
-            cornerRadius: 0.05,
-			translation: [0, 0, 0.02]
-        });
-
-        //this.subscribe(this.menu1.id, "itemsUpdated", "itemsUpdated");
-        this.updateSelections4();
-
-        this.listen("fire", "doAction4");
-    }
-
-    updateSelections4() {
-        let items = [
-            {label: "Submit"}
-        ];
-
-        this.menu1.call("Menu$MenuActor", "setItems", items);
-    }
-	
-	
-	//action method
-    doAction4() { //handles y-coordinate
-		this.publish("precisionInput", "precisionInputSubmit");
-		
-	}
-
-	
-
-
-} */
-
 class materialInputActor {
 	//this class is responsible for providing a textbox for user inputs to two tools:
 	//1. precise inputs of new vertex coordinates on the canvas
@@ -1802,12 +1704,6 @@ class materialInputActor {
 		this.publish("precisionInput", "precisionInputSubmit");
 		
 	}
-
-	
-    /* itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }	 */
-
 }
 
 class PresetParaInputActor {
@@ -1831,9 +1727,7 @@ class PresetParaInputActor {
 			let radius = this.value;
 			console.log("radius in init()", radius);
 			this.publish("assignRadius", "assignRadius", radius);
-		  
 		}
-		
 	}	
 	
     show() {
@@ -1872,12 +1766,6 @@ class PresetParaInputActor {
 		this.publish("generateShapePreset", "generateShapePreset");
 		
 	}
-
-	
-    /* itemsUpdated() {
-        this.publish(this.id, "extentChanged", {x: this.menu._cardData.width, y: this.menu._cardData.height});
-    }	 */
-
 }
 
 class CardCreatorActor {
@@ -2195,9 +2083,6 @@ class VertexMarkerPawn {
 	}
 	
 	//all drag function code from here on
-	/* translated(_data) {
-        this.scrollAreaPawn.say("updateDisplay");
-    }	 */
 	
     moveMyself(evt) {
         //move the snowball itself. 
@@ -2378,10 +2263,6 @@ export default {
             name: "Materials Display",
             pawnBehaviors: [MaterialsDisplayPawn]
         },
-		/* {
-            name: "precisionInput",
-			actorBehaviors: [precisionInputActor]
-        }, */
 		{
             name: "materialInput",
 			actorBehaviors: [materialInputActor]

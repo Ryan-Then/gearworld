@@ -6,7 +6,7 @@ export function init(Constants) {
 
     Constants.UserBehaviorDirectory = "behaviors/gearworld";
     Constants.UserBehaviorModules = [
-        "urlLink.js", "lights.js", "drawing.js", "gridFloor.js", "earth.js", "createCuboid.js", "createSphere.js", "createCylinder.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
+        "urlLink.js", "lights.js", "drawing.js", "gridFloor.js", "earth.js", "cascade.js", "rapier.js", "gearSpin.js", "gearCounterSpin.js"
          ];
 
     Constants.UseRapier = true;
@@ -128,49 +128,7 @@ export function init(Constants) {
                 shadow: true,
 				behaviorModules: ["materialInput"],
             }
-        },	
-		
-/*         {
-            card: {
-                name: "coordinate text bar",
-                className: "TextFieldActor",
-                translation: [2.9, 0.52, 1.3],
-                rotation: [0, -Math.PI / 2, 0],
-                depth: 0.01,
-                type: "text",
-                runs: [{text: "X"}],
-                margins: {left: 20, top: 20, right: 20, bottom: 20},
-                backgroundColor: 0xffffff,
-                color: 0x000000,
-                frameColor: frameColor,
-                width: 0.77,
-                height: 0.15,
-                textScale: 0.002,
-                shadow: true,
-				behaviorModules: ["precisionInput"],
-            }
-        },	
-
-        {
-            card: {
-                name: "coordinate text bar 2",
-                className: "TextFieldActor",
-                translation: [2.9, 0.36, 1.3],
-                rotation: [0, -Math.PI / 2, 0],
-                depth: 0.01,
-                type: "text",
-                runs: [{text: "Y"}],
-                margins: {left: 20, top: 20, right: 20, bottom: 20},
-                backgroundColor: 0xffffff,
-                color: 0x000000,
-                frameColor: frameColor,
-                width: 0.77,
-                height: 0.15,
-                textScale: 0.002,
-                shadow: true,
-				behaviorModules: ["precisionInput"],
-            }
-        },	 */		
+        },		
 		
         {
             card: {
