@@ -493,14 +493,14 @@ class DrawingCanvasActor {
 
 		console.log("this.density 1", this.density);
 		
-		let polyMass = polyVolume * (this.density / 1000000);	
+		let polyMass = Math.abs(polyVolume) * (this.density / 1000000);	
 		
 		console.log("this.density 2", this.density);
 		
 		console.log("polyMass", polyMass);
 		
 	
-		let data = [polyVertices, polyArea, polyVolume, polyMass]
+		let data = [polyVertices, Math.abs(polyArea), Math.abs(polyVolume), Math.abs(polyMass)]
 		
 		console.log("data", data);
 		
