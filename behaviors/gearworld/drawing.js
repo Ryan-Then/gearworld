@@ -459,7 +459,7 @@ class DrawingCanvasActor {
 			dataPackage2: dataBox2,
 			dataPackage3: dataBox3,
 			
-			behaviorModules: ["CardCreator"],
+			behaviorModules: ["CardCreator", "SingleUser"],
 		});
         this.userShapes.push(userShape);
 		
@@ -476,12 +476,18 @@ class DrawingCanvasActor {
 		let polyArea = 0;
 		
 		//calculate cross-sectional area of the polygonal object (face area of shape on canvas)
+		//uses shoelace formula
 		for (let i = 0; i < numPoints; i++) {
 			const [x1, y1] = myAvatar.vertexPoints[i];
 			const [x2, y2] = myAvatar.vertexPoints[(i + 1) % numPoints]; 
 
 			polyArea += (x1 * y2 - x2 * y1);
 		}
+		
+		//obtain area of single face by dividing shoelace formula output by half
+		//allow polyArea to remain twice the actual face area, because extruded object will have 2 faces (front and back)
+		let singleFaceArea = polyArea / 2;
+		let polyVolume = singleFaceArea * myAvatar.extrusionParameters[1] * 1000; //extrusion depth
 		
 		//calculate the area of the extruded sides of the polygonal object
 		const depth = myAvatar.extrusionParameters[1] * 1000; //extrusion depth
@@ -501,7 +507,7 @@ class DrawingCanvasActor {
 
 		polyArea = Math.abs(polyArea);
 
-		let polyVolume = polyArea * myAvatar.extrusionParameters[1] * 1000; //extrusion depth
+		
 
 		console.log("this.density 1", this.density);
 		
@@ -560,6 +566,7 @@ class DrawingCanvasActor {
 		if (data.action === "Increase") {
 			let anotherArrayElement = myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice];
 			
+			//this is to check for the bevel condition, which is a boolean
 			let trueOrFalse = Number.isInteger(anotherArrayElement);
 			console.log(trueOrFalse);
 			if (!trueOrFalse){
@@ -582,6 +589,7 @@ class DrawingCanvasActor {
         if (data.action === "Decrease") {
 			let anotherArrayElement = myAvatar.extrusionParameters[myAvatar.extrusionParametersChoice];
 			
+			//this is to check for the bevel condition, which is a boolean
 			let trueOrFalse = Number.isInteger(anotherArrayElement);
 			console.log(trueOrFalse);
 			if (!trueOrFalse){
@@ -659,24 +667,16 @@ class DrawingCanvasActor {
 		if (materialName in this.materialsArray) {	
 			
 			let matData = [materialName];
+			//console.log("matdata", matData);
 			let tempArray = this.materialsArray[materialName];
 			matData.push(tempArray[0]);
 			matData.push(tempArray[1]);
-			this.density = tempArray[0];
-			
-			console.log("matData", matData);
+			this.density = matData[1];
+			this.metalnessValue = matData[2];
+			console.log("matData in setMaterial", matData);
 			this.publish("polyMaterial", "polyMaterial", matData);
             return;
 		}
-		
-		/* if (data.action === "Aluminium") {
-            this.metalnessValue = 0.1;
-			this.density = 2710;
-			//this.publish("getMetalness", "getMetalness", this.metalnessValue);
-			let matData = [this.materialName, this.density, this.metalnessValue];
-			this.publish("polyMaterial", "polyMaterial", matData);
-            return;
-        } */
 	}
 
     itemsUpdated() {
@@ -778,7 +778,7 @@ class DrawingCanvasPawn {
 		myAvatar.extrusionParameters.push(0);//varBevelOffset
 		myAvatar.extrusionParameters.push(0);//varBevelSegments				
 		
-		//this.metalnessValue = 0;
+		this.metalnessValue = 0;
 		//this.subscribe("getMetalness", "getMetalness", this.setMetalness);
 
 		//randomize pen colour when initiated (including when canvas is reset)
@@ -1880,8 +1880,79 @@ class PresetParaInputActor {
 
 }
 
+class CardCreatorActor {
+    /*
+    movement behavior for accessories. the obect with always be attached to another object and 
+    will always face perpendicular to the surface it is attached to. usful for object that need to be 
+    placed radially outward.
+    */
+    setup() {
+        this.listen("dragStart", "dragStart");
+        this.listen("dragEnd", "dragEnd");
+        this.listen("dragMove", "dragMove");
+    }
+
+    dragStart({viewId}) {
+        if (!this.occupier) {// see SingleUser behavior
+            this.say("focus", viewId);  // grab single user focus
+            this.unstick();
+        }
+    }
+
+    dragMove({viewId, translation, rotation}) {
+        if (viewId === this.occupier) { // see SingleUser behavior
+            if (translation) this.translateTo(translation);
+            if (rotation) this.rotateTo(rotation);
+            this.say("focus", viewId);  // refresh single user focus
+        }
+    }
+
+    dragEnd({viewId, parent}) {
+        if (viewId === this.occupier) { // see SingleUser behavior
+            this.stickTo(parent);
+            this.say("unfocus", viewId); // release single user focus
+        }
+    }
+
+    // remove from current parent into world-space
+    unstick() {
+        if (!this.parent) {return;}
+        // use our global transform as our own translation and rotation
+        let {m4_getTranslation, m4_getRotation} = Microverse;
+        let translation = m4_getTranslation(this.global);
+        let rotation = m4_getRotation(this.global);
+        this.set({parent: null, translation, rotation});
+    }
+
+    // stick to a parent preserving our world-space translation and rotation
+    stickTo(parent) {
+        if (!parent || this.parent|| this.isMeOrMyChild(parent)) {return;}
+        // make our rotation and translation relative to the new parent
+        let {m4_invert, m4_multiply, m4_getTranslation, m4_getRotation} = Microverse;
+        let relativeToParent = m4_multiply(this.global, m4_invert(parent.global));
+        let translation = m4_getTranslation(relativeToParent);
+        let rotation = m4_getRotation(relativeToParent);
+        this.set({parent, translation, rotation});
+    }
+
+    isMeOrMyChild(actor) {
+        while (actor) {
+            // compare IDs because actor may be a behavior proxy
+            if (actor.id === this.id) {return true;}
+            actor = actor.parent;
+        }
+        return false;
+    }
+	
+}
+	
+	
 class CardCreatorPawn {
 	setup(){	
+		this.addEventListener("pointerMove", "pointerMove");
+        this.addEventListener("pointerDown", "pointerDown");
+        this.addEventListener("pointerUp", "pointerUp");	
+	
 		console.log("cardCreate has fired");
 	
 		let pointsArray = this.actor._cardData.dataPackage1; 
@@ -1912,7 +1983,84 @@ class CardCreatorPawn {
 		newShape.rotation.y = -Math.PI / 2;
 
 		this.shape.add(newShape);
-	}	
+	}
+
+    dragging() {
+        return this.actor.occupier === this.viewId; // see SingleUser behavior
+    }
+
+    pointerMove(evt) {
+        if (!this.dragging()) {return;}
+
+        // do a raycast to find objects behind this one
+        let render = this.service("ThreeRenderManager");
+        let objects = render.threeLayerUnion("pointer", "walk");
+        let avatar = this.getMyAvatar();
+        avatar.setRayCast(evt.xy);
+        let hits = avatar.raycaster.intersectObjects(objects);
+
+        // hits are sorted by distance, so we find the first hit that is not us or our child
+        let renderObject = (obj) => {
+            while (obj && !obj.wcPawn) obj = obj.parent;
+            return obj;
+        }
+        let isMeOrMyChild = (obj) => {
+            let actor = renderObject(obj)?.wcPawn.actor;
+            return this.actorCall("CardCreatorActor", "isMeOrMyChild", actor);
+        }
+        let hit = hits.find(h => !isMeOrMyChild(h.object));
+
+        // if we hit something, move to the hit point, and rotate according to the hit normal
+        let normal = hit?.face?.normal?.toArray();
+        if (normal) {
+            let {q_lookAt} = Microverse;
+            let rotation = q_lookAt([0, 1, 0], [0, 0, 1], normal);
+            let translation = hit.point.toArray();
+            this.say("dragMove", {viewId: this.viewId, translation, rotation});
+
+            // remember distance
+            this.dragInfo.distance = hit.distance;
+
+            // we reparent on pointerUp
+            let other = renderObject(hit.object).wcPawn;
+            this.dragInfo.parent = other.actor;
+
+            return;
+        }
+
+        // no hit, so move along at distance along ray
+        let {THREE} = Microverse;
+        let translation = avatar.raycaster.ray.at(this.dragInfo.distance, new THREE.Vector3()).toArray();
+        this.say("dragMove", {viewId: this.viewId, translation});
+    }
+
+    pointerDown(evt) {
+        if (!evt.xyz) {return;}
+        if (this.dragInfo) {return;}
+
+        let avatar = this.getMyAvatar();
+
+        this.dragInfo = {distance: evt.distance, parent: this.actor.parent};
+        if (avatar) {
+            avatar.addFirstResponder("pointerMove", {}, this);
+        }
+        // remove from parent (if any)
+        this.say("dragStart", {viewId: this.viewId});
+    }
+
+    pointerUp(_evt) {
+        if (!this.dragInfo) {return;}
+
+        let avatar = this.getMyAvatar();
+        if (avatar) {
+            avatar.removeFirstResponder("pointerMove", {}, this);
+        }
+
+        // attach to the object I was dragged on
+        this.say("dragEnd", {viewId: this.viewId, parent: this.dragInfo.parent});
+
+        this.dragInfo = null;
+    }	
 	
 }
 
@@ -2240,6 +2388,7 @@ export default {
         },	
 		{
             name: "CardCreator",
+			actorBehaviors: [CardCreatorActor],
 			pawnBehaviors: [CardCreatorPawn]
         },
 		{
