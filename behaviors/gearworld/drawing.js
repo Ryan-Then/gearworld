@@ -2008,6 +2008,8 @@ class VertexMarkerActor{
 	//code to spawn a pop-up card that will display the coordinates of the vertex that the user has mouse-overed
 	//currently non-functioning
 	generatePopupCard() {
+		this.popupCards.forEach((c) => c.destroy());
+		this.popupCards = [];		
 		let popupTranslation = [this.vec3.x, this.vec3.y + 0.1, this.vec3.z];
 		let index = this._cardData.vertexIndex;
 		
