@@ -18,12 +18,23 @@ export function init(Constants) {
     Constants.DefaultCards = [		
 		{
             card: {
-                name: "world model",
-                behaviorModules: ["GridFloor"],
+                name:"world model",
+                dataScale: [9, 9, 9],
+                dataTranslation: [108, -17.5, -128],
+                dataRotation: [0, Math.PI / 12 * 5, 0],
+                // dataTranslation: [22, -10.7, -20],
                 layers: ["walk"],
-                type: "object",
-                translation: [0, -1.7, 0],
+                type: "3d",
+                dataLocation: "3Ep4wIDFLOzFTJAw0JPxevGXaAv1FM_VZ1jSCqYN7R4ELTExNTZ_amojLCkgNmswNmsmNyo0MCAxaywqajBqAiETJzwpDDYELhQmBx0hdgI9JDM8MhAOEhwcd2osKmsmNyo0MCAxaygsJjcqMyA3NiBqEXAGci8jHHMhFg8JLgwVADwwMTU1CjcsCj8Rd3c9M3J8DCcXN3x3LTFwHGohJDEkaicHfCd3KXYsDAMyCxQENgILHHwLPQo2DHIgKzYCdHANBjQEInEBLQFycnE",
+                modelType: "glb",
+                singleSided: true,
                 shadow: true,
+
+                placeholder: false,
+                placeholderSize: [100, 0.01, 100],
+                placeholderColor: 0xcccccc,
+                placeholderOffset: [0, -1.7, 0],
+
             }
         },
 

@@ -704,9 +704,6 @@ class BehaviorMenuActor {
         this.subscribe(this.menu.id, "itemsUpdated", "itemsUpdated");
         this.updateSelections();
 
-		console.log("this._cardData.target", this._cardData.target);
-
-
         this.listen("fire", "setBehaviors");
         this.subscribe(this._cardData.target, "behaviorUpdated", "updateSelections");
     }
@@ -715,8 +712,6 @@ class BehaviorMenuActor {
         console.log("updateSelections");
         let target = this.service("ActorManager").get(this._cardData.target);
         let items = [];
-		
-		console.log("this._cardData.target", this._cardData.target);
 
         this.targetSystemModules = [];
         let behaviorModules = [...this.behaviorManager.modules];
@@ -728,7 +723,6 @@ class BehaviorMenuActor {
                 items.push(obj);
             } else {
                 if (target._behaviorModules?.indexOf(k) >= 0) {
-					//use selected:true as the method of highlighting
                     this.targetSystemModules.push({label: k, selected: true});
                 }
             }

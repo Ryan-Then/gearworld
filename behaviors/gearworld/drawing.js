@@ -434,7 +434,7 @@ class DrawingCanvasActor {
 		let userShape = this.createCard({
 			name:"userShape",
 			type: "object",
-			translation: [2.975, 0, -1.5],
+			translation: [2.975, 0, -1],
 			layers: ["pointer"],
 			scale: [1, 1, 1],
 			dataPackage1: dataBox1,
